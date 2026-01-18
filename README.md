@@ -38,7 +38,7 @@ Commit format: type(Scope): what (why) → next
 - → next: continuation (wip only)
 ```
 
-Or copy [skill/agentic-commit.md](skill/agentic-commit.md) for the full skill.
+Or install the full skill from the [skills/agentic-commit](skills/agentic-commit) directory.
 
 ## Documentation
 
