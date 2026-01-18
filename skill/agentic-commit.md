@@ -161,6 +161,8 @@ git status --short
 ❌ `wip(X): add logout → continue later` — Vague
 ✅ `wip(X): add logout (security) → token blacklist, rate limiting` — Specific
 
+**Never guess `→ next`.** If you don't have implementation context, use `feat`. Guessed `→ next` is worse than none.
+
 ## Commit Finality
 
 **Commits are final. Never amend past commits to add `→ next`.**
