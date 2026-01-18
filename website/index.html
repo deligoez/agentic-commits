@@ -307,14 +307,114 @@ wip(AuthController): add logout (security) → token blacklist, rate limiting</c
 
 <h2>Install</h2>
 
-<p>Agentic Commits works in two ways:</p>
-<ul>
-    <li><strong>Specification</strong> — Add format rules to your agent config (quick start)</li>
-    <li><strong>Skill</strong> — Install the full skill for hunk-splitting and atomic commit workflows</li>
-</ul>
+<p>Install the skill for your coding agent. The skill includes hunk-splitting workflows and atomic commit automation.</p>
 
-<h3>Option 1: Specification Only</h3>
-<p>Add to your <code>CLAUDE.md</code>, <code>AGENTS.md</code>, <code>.cursorrules</code>, or system prompt:</p>
+<h3>Claude Code</h3>
+
+<p><strong>1. Marketplace (recommended)</strong></p>
+<pre><code>/plugin marketplace add deligoez/agentic-commits
+/plugin install agentic-commit@agentic-commits</code></pre>
+
+<p><strong>2. Manual — Project-level</strong> <small>(tracked in git, team-wide)</small></p>
+<pre><code>mkdir -p .claude/skills/agentic-commit
+curl -sL https://github.com/deligoez/agentic-commits/archive/main.tar.gz | \
+  tar -xz --strip-components=2 -C .claude/skills/agentic-commit \
+  agentic-commits-main/skills/agentic-commit</code></pre>
+
+<p><strong>3. Manual — User-level</strong> <small>(all your projects)</small></p>
+<pre><code>mkdir -p ~/.claude/skills/agentic-commit
+curl -sL https://github.com/deligoez/agentic-commits/archive/main.tar.gz | \
+  tar -xz --strip-components=2 -C ~/.claude/skills/agentic-commit \
+  agentic-commits-main/skills/agentic-commit</code></pre>
+
+<p><small>Then add to <code>CLAUDE.md</code>: <code>Use the agentic-commit skill for all commits.</code></small></p>
+
+<h3>Codex</h3>
+
+<p><strong>1. Repo-level</strong></p>
+<pre><code>mkdir -p .codex/skills/agentic-commit
+curl -sL https://github.com/deligoez/agentic-commits/archive/main.tar.gz | \
+  tar -xz --strip-components=2 -C .codex/skills/agentic-commit \
+  agentic-commits-main/skills/agentic-commit</code></pre>
+
+<p><strong>2. User-level</strong></p>
+<pre><code>mkdir -p ~/.codex/skills/agentic-commit
+curl -sL https://github.com/deligoez/agentic-commits/archive/main.tar.gz | \
+  tar -xz --strip-components=2 -C ~/.codex/skills/agentic-commit \
+  agentic-commits-main/skills/agentic-commit</code></pre>
+
+<p><small>Invoke with <code>/skills</code> or <code>$agentic-commit</code>. Add to <code>AGENTS.md</code> for automatic invocation.</small></p>
+
+<h3>Cursor</h3>
+
+<p><strong>1. Remote Rule (Settings)</strong></p>
+<p><small>Settings → Rules → Add Rule → Remote Rule (GitHub) → <code>deligoez/agentic-commits</code></small></p>
+
+<p><strong>2. Manual — Project-level</strong></p>
+<pre><code>mkdir -p .cursor/skills/agentic-commit
+curl -sL https://github.com/deligoez/agentic-commits/archive/main.tar.gz | \
+  tar -xz --strip-components=2 -C .cursor/skills/agentic-commit \
+  agentic-commits-main/skills/agentic-commit</code></pre>
+
+<p><strong>3. Manual — User-level</strong></p>
+<pre><code>mkdir -p ~/.cursor/skills/agentic-commit
+curl -sL https://github.com/deligoez/agentic-commits/archive/main.tar.gz | \
+  tar -xz --strip-components=2 -C ~/.cursor/skills/agentic-commit \
+  agentic-commits-main/skills/agentic-commit</code></pre>
+
+<p><small>Skills auto-discovered at startup. Invoke manually with <code>/</code> in Agent chat. Also supports <code>.claude/skills/</code>.</small></p>
+
+<h3>Amp</h3>
+
+<p><strong>1. Workspace-level</strong></p>
+<pre><code>mkdir -p .agents/skills/agentic-commit
+curl -sL https://github.com/deligoez/agentic-commits/archive/main.tar.gz | \
+  tar -xz --strip-components=2 -C .agents/skills/agentic-commit \
+  agentic-commits-main/skills/agentic-commit</code></pre>
+
+<p><strong>2. User-level</strong></p>
+<pre><code>mkdir -p ~/.config/agents/skills/agentic-commit
+curl -sL https://github.com/deligoez/agentic-commits/archive/main.tar.gz | \
+  tar -xz --strip-components=2 -C ~/.config/agents/skills/agentic-commit \
+  agentic-commits-main/skills/agentic-commit</code></pre>
+
+<p><small>Add guidance to <code>AGENTS.md</code>. Amp auto-loads skills via <code>load_skill</code> tool.</small></p>
+
+<h3>Antigravity</h3>
+
+<p><strong>1. Workspace-level</strong></p>
+<pre><code>mkdir -p .agent/skills/agentic-commit
+curl -sL https://github.com/deligoez/agentic-commits/archive/main.tar.gz | \
+  tar -xz --strip-components=2 -C .agent/skills/agentic-commit \
+  agentic-commits-main/skills/agentic-commit</code></pre>
+
+<p><strong>2. Global</strong></p>
+<pre><code>mkdir -p ~/.gemini/antigravity/skills/agentic-commit
+curl -sL https://github.com/deligoez/agentic-commits/archive/main.tar.gz | \
+  tar -xz --strip-components=2 -C ~/.gemini/antigravity/skills/agentic-commit \
+  agentic-commits-main/skills/agentic-commit</code></pre>
+
+<p><small>Auto-discovered from <code>.agent/skills/</code>.</small></p>
+
+<h3>OpenCode</h3>
+
+<p><strong>1. Project-level</strong></p>
+<pre><code>mkdir -p .opencode/skill/agentic-commit
+curl -sL https://github.com/deligoez/agentic-commits/archive/main.tar.gz | \
+  tar -xz --strip-components=2 -C .opencode/skill/agentic-commit \
+  agentic-commits-main/skills/agentic-commit</code></pre>
+
+<p><strong>2. User-level</strong></p>
+<pre><code>mkdir -p ~/.config/opencode/skill/agentic-commit
+curl -sL https://github.com/deligoez/agentic-commits/archive/main.tar.gz | \
+  tar -xz --strip-components=2 -C ~/.config/opencode/skill/agentic-commit \
+  agentic-commits-main/skills/agentic-commit</code></pre>
+
+<p><small>Skills loaded on-demand. Also supports <code>.claude/skills/</code>.</small></p>
+
+<h3>Other Agents / Specification Only</h3>
+
+<p>Add to your config file (<code>CLAUDE.md</code>, <code>AGENTS.md</code>, <code>.cursorrules</code>, or system prompt):</p>
 
 <pre><code>Commit format: type(Scope): what (why) → next
 
@@ -329,90 +429,15 @@ Rules:
 - One file per commit (unless directly dependent)
 - Order: fixes → refactors → features</code></pre>
 
-<h3>Option 2: Full Skill</h3>
-<p>Install the <a href="https://github.com/deligoez/agentic-commits/blob/main/skill/agentic-commit.md">agentic-commit skill</a> for hunk-splitting and atomic commit workflows.</p>
-
-<h4>Claude Code</h4>
-<pre><code># Project-level (recommended — tracked in git)
-mkdir -p .claude/skills/agentic-commit
-curl -o .claude/skills/agentic-commit/SKILL.md \
-  https://raw.githubusercontent.com/deligoez/agentic-commits/main/skill/agentic-commit.md
-
-# User-level (available across all projects)
-mkdir -p ~/.claude/skills/agentic-commit
-curl -o ~/.claude/skills/agentic-commit/SKILL.md \
-  https://raw.githubusercontent.com/deligoez/agentic-commits/main/skill/agentic-commit.md</code></pre>
-<p><small>Skills are auto-discovered. Add to <code>CLAUDE.md</code>: <code>Use the agentic-commit skill for all commits.</code></small></p>
-
-<h4>Codex</h4>
-<pre><code># Repo-level
-mkdir -p .codex/skills/agentic-commit
-curl -o .codex/skills/agentic-commit/SKILL.md \
-  https://raw.githubusercontent.com/deligoez/agentic-commits/main/skill/agentic-commit.md
-
-# User-level
-mkdir -p ~/.codex/skills/agentic-commit
-curl -o ~/.codex/skills/agentic-commit/SKILL.md \
-  https://raw.githubusercontent.com/deligoez/agentic-commits/main/skill/agentic-commit.md</code></pre>
-<p><small>Invoke with <code>/skills</code> or <code>$agentic-commit</code>. Add to <code>AGENTS.md</code> for automatic invocation.</small></p>
-
-<h4>Cursor</h4>
-<pre><code># Project-level (also supports .claude/skills/)
-mkdir -p .cursor/skills/agentic-commit
-curl -o .cursor/skills/agentic-commit/SKILL.md \
-  https://raw.githubusercontent.com/deligoez/agentic-commits/main/skill/agentic-commit.md
-
-# User-level
-mkdir -p ~/.cursor/skills/agentic-commit
-curl -o ~/.cursor/skills/agentic-commit/SKILL.md \
-  https://raw.githubusercontent.com/deligoez/agentic-commits/main/skill/agentic-commit.md</code></pre>
-<p><small>Skills auto-discovered at startup. Invoke manually with <code>/</code> in Agent chat.</small></p>
-
-<h4>Amp</h4>
-<pre><code># Workspace-level
-mkdir -p .agents/skills/agentic-commit
-curl -o .agents/skills/agentic-commit/SKILL.md \
-  https://raw.githubusercontent.com/deligoez/agentic-commits/main/skill/agentic-commit.md
-
-# User-level
-mkdir -p ~/.config/agents/skills/agentic-commit
-curl -o ~/.config/agents/skills/agentic-commit/SKILL.md \
-  https://raw.githubusercontent.com/deligoez/agentic-commits/main/skill/agentic-commit.md</code></pre>
-<p><small>Amp auto-loads skills via <code>load_skill</code> tool. Add guidance to <code>AGENTS.md</code>.</small></p>
-
-<h4>Antigravity</h4>
-<pre><code># Workspace-level
-mkdir -p .agent/skills/agentic-commit
-curl -o .agent/skills/agentic-commit/SKILL.md \
-  https://raw.githubusercontent.com/deligoez/agentic-commits/main/skill/agentic-commit.md
-
-# Global
-mkdir -p ~/.gemini/antigravity/skills/agentic-commit
-curl -o ~/.gemini/antigravity/skills/agentic-commit/SKILL.md \
-  https://raw.githubusercontent.com/deligoez/agentic-commits/main/skill/agentic-commit.md</code></pre>
-<p><small>Auto-discovered from <code>.agent/skills/</code>.</small></p>
-
-<h4>OpenCode</h4>
-<pre><code># Project-level (also supports .claude/skills/)
-mkdir -p .opencode/skill/agentic-commit
-curl -o .opencode/skill/agentic-commit/SKILL.md \
-  https://raw.githubusercontent.com/deligoez/agentic-commits/main/skill/agentic-commit.md
-
-# User-level
-mkdir -p ~/.config/opencode/skill/agentic-commit
-curl -o ~/.config/opencode/skill/agentic-commit/SKILL.md \
-  https://raw.githubusercontent.com/deligoez/agentic-commits/main/skill/agentic-commit.md</code></pre>
-<p><small>Skills loaded on-demand via native skill tool.</small></p>
-
-<h4>Summary Table</h4>
+<h3>Summary</h3>
 <table>
-    <tr><th>Agent</th><th>Project Path</th><th>User Path</th><th>Config File</th></tr>
-    <tr><td>Claude Code</td><td><code>.claude/skills/</code></td><td><code>~/.claude/skills/</code></td><td><code>CLAUDE.md</code></td></tr>
-    <tr><td>Codex</td><td><code>.codex/skills/</code></td><td><code>~/.codex/skills/</code></td><td><code>AGENTS.md</code></td></tr>
-    <tr><td>Cursor</td><td><code>.cursor/skills/</code></td><td><code>~/.cursor/skills/</code></td><td><code>.cursorrules</code></td></tr>
-    <tr><td>Amp</td><td><code>.agents/skills/</code></td><td><code>~/.config/agents/skills/</code></td><td><code>AGENTS.md</code></td></tr>
-    <tr><td>Antigravity</td><td><code>.agent/skills/</code></td><td><code>~/.gemini/antigravity/skills/</code></td><td>—</td></tr>
-    <tr><td>OpenCode</td><td><code>.opencode/skill/</code></td><td><code>~/.config/opencode/skill/</code></td><td>—</td></tr>
+    <tr><th>Agent</th><th>Best Method</th><th>Project Path</th><th>Config</th></tr>
+    <tr><td>Claude Code</td><td>Marketplace</td><td><code>.claude/skills/</code></td><td><code>CLAUDE.md</code></td></tr>
+    <tr><td>Codex</td><td>Manual</td><td><code>.codex/skills/</code></td><td><code>AGENTS.md</code></td></tr>
+    <tr><td>Cursor</td><td>Remote Rule</td><td><code>.cursor/skills/</code></td><td><code>.cursorrules</code></td></tr>
+    <tr><td>Amp</td><td>Manual</td><td><code>.agents/skills/</code></td><td><code>AGENTS.md</code></td></tr>
+    <tr><td>Antigravity</td><td>Manual</td><td><code>.agent/skills/</code></td><td>—</td></tr>
+    <tr><td>OpenCode</td><td>Manual</td><td><code>.opencode/skill/</code></td><td>—</td></tr>
 </table>
 
 <hr>
