@@ -4,5 +4,6 @@
 *.swo
 benchmark/
 .claude/
+CLAUDE.md
 BENCHMARK_JOURNEY.md
 BENCHMARK_PLAN_V2.md
