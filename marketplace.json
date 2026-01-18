@@ -1,0 +1,27 @@
+{
+  "name": "agentic-commits",
+  "version": "1.0.0",
+  "description": "Atomic commits with agent-optimized format for context recovery",
+  "author": "deligoez",
+  "repository": "https://github.com/deligoez/agentic-commits",
+  "homepage": "https://agenticcommits.deligoz.me",
+  "keywords": [
+    "git",
+    "commits",
+    "atomic",
+    "conventional",
+    "agent",
+    "context-recovery"
+  ],
+  "skill": {
+    "path": "skill/SKILL.md",
+    "triggers": [
+      "commit",
+      "commit changes",
+      "where did I leave off",
+      "recover context",
+      "what was I working on"
+    ]
+  },
+  "license": "MIT"
+}

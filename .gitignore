@@ -1,0 +1,8 @@
+.idea/
+.DS_Store
+*.swp
+*.swo
+benchmark/
+.claude/
+BENCHMARK_JOURNEY.md
+BENCHMARK_PLAN_V2.md
