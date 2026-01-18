@@ -1,0 +1,19 @@
+{
+  "name": "agentic-commit",
+  "version": "1.0.0",
+  "description": "Atomic commits with agent-optimized format for Resume, Review, Handoff, and Code Review",
+  "author": {
+    "name": "deligoez"
+  },
+  "repository": "https://github.com/deligoez/agentic-commits",
+  "homepage": "https://agenticcommits.deligoz.me",
+  "keywords": [
+    "git",
+    "commits",
+    "atomic",
+    "conventional",
+    "agent",
+    "hunk-splitting"
+  ],
+  "license": "MIT"
+}
