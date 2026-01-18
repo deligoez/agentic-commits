@@ -166,12 +166,26 @@ fix(AuthService): add null check (users crashed on empty forms)</code></pre>
     <li><strong>Commit order</strong> — fixes → refactors → features</li>
 </ul>
 
-<h3>Same File, Multiple Concerns</h3>
+<h3>How Hunk Splitting Works</h3>
 
-<pre><code># File has two unrelated changes — split them:
+<p>A <strong>hunk</strong> is a contiguous block of changes in a file. When one file has multiple unrelated changes, the skill splits them into separate commits:</p>
 
-fix(SessionManager): validate user ID (users crashed on empty session)
-feat(SessionManager): add refresh capability (tokens expired mid-task)</code></pre>
+<pre><code># Before: One file with mixed changes
+SessionManager.ts:
+  line 12:  + if (!userId) throw new Error('Invalid user')    ← fix
+  line 15:  + this.logger.debug('Session validated')          ← fix
+  ...
+  line 89:  + async refresh() { return this.renewToken() }    ← feat
+  line 94:  + this.lastRefresh = Date.now()                   ← feat
+
+# After: Skill uses git add -p to split hunks
+Commit 1: fix(SessionManager): validate user ID (users crashed on empty session)
+  → only lines 12, 15
+
+Commit 2: feat(SessionManager): add refresh capability (tokens expired mid-task)
+  → only lines 89, 94</code></pre>
+
+<p>Each commit contains only related lines, even from the same file. Reviewers see focused changes instead of mixed diffs.</p>
 
 <h3>Different Files, Same Type</h3>
 
