@@ -11,6 +11,11 @@
 <h1>Agentic Commits</h1>
 <p><em>Commits that tell you what to do next</em></p>
 
+<p><strong>A specification</strong> for commit messages that AI agents can read, understand, and act on.<br>
+<strong>Plus a skill</strong> that implements hunk-splitting and atomic commit workflows.</p>
+
+<p>Like <a href="https://www.conventionalcommits.org">Conventional Commits</a>, but optimized for agent capabilities: Resume, Review, Handoff, and Code Review.</p>
+
 <hr>
 
 <h2>The Problem</h2>
@@ -302,8 +307,14 @@ wip(AuthController): add logout (security) → token blacklist, rate limiting</c
 
 <h2>Install</h2>
 
-<h3>Quick Start</h3>
-<p>Add to your CLAUDE.md, AGENTS.md, or system prompt:</p>
+<p>Agentic Commits works in two ways:</p>
+<ul>
+    <li><strong>Specification</strong> — Add format rules to your project's agent config</li>
+    <li><strong>Skill</strong> — Install the full skill for hunk-splitting and atomic commit workflows</li>
+</ul>
+
+<h3>Option 1: Specification Only</h3>
+<p>Add to your <code>CLAUDE.md</code>, <code>AGENTS.md</code>, <code>.cursorrules</code>, or system prompt:</p>
 
 <pre><code>Commit format: type(Scope): what (why) → next
 
@@ -318,8 +329,23 @@ Rules:
 - One file per commit (unless directly dependent)
 - Order: fixes → refactors → features</code></pre>
 
-<h3>Full Skill</h3>
-<p>For hunk-splitting workflow and detailed examples, copy <a href="https://github.com/deligoez/agentic-commits/blob/main/skill/agentic-commit.md">skill/agentic-commit.md</a> to your project.</p>
+<h3>Option 2: Full Skill</h3>
+<p>Copy <a href="https://github.com/deligoez/agentic-commits/blob/main/skill/agentic-commit.md">skill/agentic-commit.md</a> to your agent's skill directory:</p>
+
+<table>
+    <tr><th>Agent</th><th>Skill Path</th><th>Status</th></tr>
+    <tr><td>Claude Code</td><td><code>.claude/skills/agentic-commit/</code></td><td>✅ Supported</td></tr>
+    <tr><td>Codex</td><td><code>.codex/skills/agentic-commit/</code></td><td>✅ Supported</td></tr>
+    <tr><td>OpenCode</td><td><code>.opencode/skill/agentic-commit/</code></td><td>✅ Supported</td></tr>
+    <tr><td>Cursor</td><td><code>.cursor/skills/agentic-commit/</code></td><td>🔜 Nightly</td></tr>
+    <tr><td>Amp</td><td><code>.agents/skills/agentic-commit/</code></td><td>🔜 Coming</td></tr>
+    <tr><td>Antigravity</td><td><code>.agent/skills/agentic-commit/</code></td><td>🔜 Coming</td></tr>
+</table>
+
+<p><strong>Example (Claude Code):</strong></p>
+<pre><code>mkdir -p .claude/skills/agentic-commit
+curl -o .claude/skills/agentic-commit/agentic-commit.md \
+  https://raw.githubusercontent.com/deligoez/agentic-commits/main/skill/agentic-commit.md</code></pre>
 
 <hr>
 
