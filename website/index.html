@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Agentic Commits</title>
+    <meta name="description" content="Commit format that AI agents and humans can read, understand, and act on. Enables Resume, Review, Handoff, and Code Review.">
+</head>
+<body>
+
+<h1>Agentic Commits</h1>
+<p><em>Commits that tell you what to do next</em></p>
+
+<hr>
+
+<h2>The Problem</h2>
+
+<p>Your git history has all the information. But no one can use it:</p>
+
+<h3>Agents can't Resume</h3>
+<p>Agent crashes mid-task. New session asks:</p>
+<blockquote>"What would you like me to help you with today?"</blockquote>
+<p>It doesn't know you were halfway through implementing auth.</p>
+
+<h3>Agents can't Review</h3>
+<p>You ask: "Why did we add refresh tokens?"</p>
+<blockquote>"I don't have context from previous sessions."</blockquote>
+<p>The decision is in git, but the agent can't extract the reasoning.</p>
+
+<h3>New developers can't Handoff</h3>
+<p>Someone joins the project:</p>
+<blockquote>"Could you tell me what's been done so far?"</blockquote>
+<p>The messy commit history doesn't help them understand the current state.</p>
+
+<h3>Reviewers can't Code Review effectively</h3>
+<p>PR arrives with:</p>
+<pre><code>fix: add null check</code></pre>
+<p>Reviewer sees the code, but doesn't know <em>why</em> it was needed. Can't evaluate if the solution fits the problem.</p>
+
+<hr>
+
+<h2>The Solution</h2>
+
+<p>Structure your commits so anyone — agent or human — can read them and take action.</p>
+
+<pre><code>$ git log --oneline -5
+f4a2b1c wip(AuthController): add logout (security) → token blacklist, rate limiting
+d4e5f6g feat(SessionManager): add refresh tokens (mid-task logout fix)
+a1b2c3d fix(SessionManager): validate user ID (silent auth failures)
+8c7d6e5 refactor(AuthService): extract token utils (code dedup)
+3b2a1c0 feat(AuthController): add login endpoint (user access)</code></pre>
+
+<hr>
+
+<h2>Four Capabilities</h2>
+
+<table>
+    <tr><th>Capability</th><th>When</th><th>Reads</th><th>Does</th></tr>
+    <tr>
+        <td><strong>Resume</strong></td>
+        <td>After crash or session loss</td>
+        <td><code>→ next</code></td>
+        <td>Continues interrupted work</td>
+    </tr>
+    <tr>
+        <td><strong>Review</strong></td>
+        <td>Understanding past decisions</td>
+        <td><code>(why)</code></td>
+        <td>Explains motivation</td>
+    </tr>
+    <tr>
+        <td><strong>Handoff</strong></td>
+        <td>New agent or developer</td>
+        <td>Full history</td>
+        <td>Summarizes state</td>
+    </tr>
+    <tr>
+        <td><strong>Code Review</strong></td>
+        <td>Evaluating a PR</td>
+        <td><code>(why)</code> + diff</td>
+        <td>Evaluates if solution fits problem</td>
+    </tr>
+</table>
+
+<h3>Works for both agents and humans</h3>
+
+<table>
+    <tr><th>Capability</th><th>Agent benefit</th><th>Human benefit</th></tr>
+    <tr>
+        <td><strong>Resume</strong></td>
+        <td>Continue after crash</td>
+        <td>Remember after vacation</td>
+    </tr>
+    <tr>
+        <td><strong>Review</strong></td>
+        <td>Explain past decisions</td>
+        <td>Understand why code exists</td>
+    </tr>
+    <tr>
+        <td><strong>Handoff</strong></td>
+        <td>New agent takes over</td>
+        <td>New developer onboarding</td>
+    </tr>
+    <tr>
+        <td><strong>Code Review</strong></td>
+        <td>AI reviewer evaluates approach</td>
+        <td>Human reviewer understands intent</td>
+    </tr>
+</table>
+
+<hr>
+
+<h2>The Format</h2>
+
+<pre><code>type(Scope): what (why) → next</code></pre>
+
+<h3>Elements</h3>
+
+<table>
+    <tr><th>Element</th><th>Purpose</th><th>Required</th></tr>
+    <tr><td><strong>type</strong></td><td>Categorize: feat, fix, wip, refactor, test, docs, chore</td><td>Always</td></tr>
+    <tr><td><strong>Scope</strong></td><td>Locate: file name or component</td><td>Always</td></tr>
+    <tr><td><strong>what</strong></td><td>Describe: imperative action</td><td>Always</td></tr>
+    <tr><td><strong>(why)</strong></td><td>Explain: motivation — enables Review &amp; Code Review</td><td>Always</td></tr>
+    <tr><td><strong>→ next</strong></td><td>Continue: tasks — enables Resume</td><td>WIP only</td></tr>
+</table>
+
+<h3>Types</h3>
+
+<table>
+    <tr><th>Type</th><th>Use</th><th>Needs → next?</th></tr>
+    <tr><td><code>feat</code></td><td>Completed feature</td><td>No</td></tr>
+    <tr><td><code>wip</code></td><td>Work in progress</td><td><strong>Yes</strong></td></tr>
+    <tr><td><code>fix</code></td><td>Bug fix</td><td>No</td></tr>
+    <tr><td><code>refactor</code></td><td>Code restructure</td><td>No</td></tr>
+    <tr><td><code>test</code></td><td>Tests</td><td>No</td></tr>
+    <tr><td><code>docs</code></td><td>Documentation</td><td>No</td></tr>
+    <tr><td><code>chore</code></td><td>Config, dependencies</td><td>No</td></tr>
+</table>
+
+<h3>Examples</h3>
+
+<pre><code># Completed feature — reviewer knows it's done
+feat(AuthService): add JWT validation (token expiry protection)
+
+# Work in progress — agent knows what's next
+wip(AuthController): add logout endpoint (security) → token blacklist, rate limiting
+
+# Bug fix — reviewer can evaluate if solution fits problem
+fix(SessionManager): validate user ID (users crashed on empty session)
+
+# Refactor — reviewer understands the motivation
+refactor(UserService): extract token utils (code was duplicated in 3 places)</code></pre>
+
+<hr>
+
+<h2>Code Review: Why (why) matters</h2>
+
+<p>Without <code>(why)</code>, reviewers can only check:</p>
+<ul>
+    <li>✅ Is the code syntactically correct?</li>
+    <li>✅ Are there obvious bugs?</li>
+    <li>❌ Is this the right approach for the problem?</li>
+    <li>❌ Is there a better solution?</li>
+</ul>
+
+<p>With <code>(why)</code>, reviewers can evaluate:</p>
+
+<pre><code># Without (why) — reviewer guesses the problem
+fix(AuthService): add null check
+
+# With (why) — reviewer can evaluate if null check is the right solution
+fix(AuthService): add null check (users crashed on empty forms)</code></pre>
+
+<p>Now the reviewer can ask: "Is a null check the best fix for users crashing on empty forms? Or should we validate earlier?"</p>
+
+<hr>
+
+<h2>Atomic Commits</h2>
+
+<p>Agents and reviewers parse commits one by one. Make each one self-contained:</p>
+
+<ul>
+    <li><strong>One logical change per commit</strong> — Don't mix unrelated changes</li>
+    <li><strong>One file per commit</strong> — Different files = separate commits (unless directly dependent)</li>
+    <li><strong>Hunk-level splitting</strong> — Same file can have multiple commits if changes are independent</li>
+    <li><strong>Commit order</strong> — fixes → refactors → features</li>
+</ul>
+
+<h3>Same File, Multiple Concerns</h3>
+
+<pre><code># File has two unrelated changes — split them:
+
+fix(SessionManager): validate user ID (users crashed on empty session)
+feat(SessionManager): add refresh capability (tokens expired mid-task)</code></pre>
+
+<h3>Different Files, Same Type</h3>
+
+<pre><code># ❌ Bad: reviewer can't tell which file had which problem
+fix(AuthService,UserController): add validation (prevent errors)
+
+# ✅ Good: reviewer knows exactly what was fixed where
+fix(AuthService): add validation (empty credentials caused crash)
+fix(UserController): add validation (invalid IDs caused 500 error)</code></pre>
+
+<hr>
+
+<h2>Benchmark</h2>
+
+<p>We tested agent comprehension across 5 AI models (Claude, Codex, GLM) on Vite PR #21235.</p>
+
+<h3>Format Comparison</h3>
+
+<table>
+    <tr><th>Format</th><th>Agent Accuracy</th></tr>
+    <tr><td>Plain commits</td><td>38.7%</td></tr>
+    <tr><td>Conventional commits</td><td>48.0%</td></tr>
+    <tr><td>+ WHY <code>(reason)</code></td><td>51.5%</td></tr>
+    <tr><td><strong>+ WHY + NEXT + Scope</strong></td><td><strong>76.6%</strong></td></tr>
+</table>
+
+<h3>What Each Element Adds</h3>
+
+<table>
+    <tr><th>Element</th><th>Enables</th><th>Impact</th></tr>
+    <tr><td><strong>→ next</strong></td><td>Resume</td><td>+12%</td></tr>
+    <tr><td><strong>(why)</strong></td><td>Review, Code Review</td><td>+3.5%</td></tr>
+    <tr><td><strong>Atomic</strong></td><td>All capabilities</td><td>Clean history</td></tr>
+</table>
+
+<p><a href="https://github.com/deligoez/agentic-commits/tree/main/benchmark">Full benchmark methodology →</a></p>
+
+<hr>
+
+<h2>FAQ</h2>
+
+<h3>Why not just read the code?</h3>
+<p>For many tasks, reading the codebase is enough. But some information only exists in commits:</p>
+<table>
+    <tr><th>Information</th><th>In codebase?</th><th>In commits?</th></tr>
+    <tr><td>What code does</td><td>✅</td><td>❌</td></tr>
+    <tr><td><strong>Why it was written</strong></td><td>❌ (sometimes comments)</td><td>✅ <code>(why)</code></td></tr>
+    <tr><td><strong>What's next</strong></td><td>❌</td><td>✅ <code>→ next</code></td></tr>
+    <tr><td><strong>Is it finished?</strong></td><td>❌ (guess)</td><td>✅ <code>wip</code> vs <code>feat</code></td></tr>
+</table>
+<p>Commits are <strong>metadata about your code</strong>. They complement reading code, not replace it.</p>
+
+<h3>How is this different from Conventional Commits?</h3>
+<p>Agentic Commits extends Conventional Commits with two additions:</p>
+<table>
+    <tr><th>Element</th><th>Conventional</th><th>Agentic</th></tr>
+    <tr><td><code>(why)</code></td><td>❌ Optional in body</td><td>✅ Required in title</td></tr>
+    <tr><td><code>→ next</code></td><td>❌ Not defined</td><td>✅ Required for WIP</td></tr>
+</table>
+<pre><code># Conventional
+feat(auth): add JWT validation
+
+# Agentic — adds why and next
+feat(AuthService): add JWT validation (token expiry protection)
+wip(AuthController): add logout (security) → token blacklist, rate limiting</code></pre>
+
+<h3>Is this only for AI agents?</h3>
+<p>No. All four capabilities benefit both agents and humans:</p>
+<ul>
+    <li><strong>Resume:</strong> Agent continues after crash / Human remembers after vacation</li>
+    <li><strong>Review:</strong> Agent explains decisions / Human understands why code exists</li>
+    <li><strong>Handoff:</strong> New agent takes over / New developer onboards</li>
+    <li><strong>Code Review:</strong> AI reviewer evaluates approach / Human reviewer understands intent</li>
+</ul>
+
+<h3>What if I forget to add (why)?</h3>
+<p>The commit loses value for Review and Code Review. Without <code>(why)</code>:</p>
+<ul>
+    <li>Reviewers can't evaluate if the solution fits the problem</li>
+    <li>Future developers (or agents) can't understand the motivation</li>
+    <li>You're back to guessing from code alone</li>
+</ul>
+
+<h3>Should I use commit body?</h3>
+<p>Title-only format is usually enough. Our benchmark showed no accuracy difference between title-only and title+body formats. Use body only for complex changes that need extra context.</p>
+
+<h3>Can I use → next on non-WIP commits?</h3>
+<p>No. <code>→ next</code> is only for <code>wip</code> commits. Completed work (<code>feat</code>, <code>fix</code>, etc.) shouldn't have next steps — if there are next steps, it's not done yet.</p>
+
+<h3>Can I apply this to an existing project?</h3>
+<p>Yes. Start using the format for new commits. You don't need to rewrite history. Over time, your recent commits will be agent-readable while older ones remain as-is.</p>
+
+<h3>How atomic should my commits be?</h3>
+<p>One logical change, one file (unless directly dependent). If you're tempted to write "and" in your commit message, split it into two commits.</p>
+
+<hr>
+
+<h2>Install</h2>
+
+<h3>Quick Start</h3>
+<p>Add to your CLAUDE.md, AGENTS.md, or system prompt:</p>
+
+<pre><code>Commit format: type(Scope): what (why) → next
+
+Elements:
+- type: feat/fix/wip/refactor/test/docs/chore
+- Scope: file name or component
+- (why): motivation — enables Review and Code Review
+- → next: continuation — enables Resume (wip only)
+
+Rules:
+- One logical change per commit
+- One file per commit (unless directly dependent)
+- Order: fixes → refactors → features</code></pre>
+
+<h3>Full Skill</h3>
+<p>For hunk-splitting workflow and detailed examples, copy <a href="https://github.com/deligoez/agentic-commits/blob/main/skill/agentic-commit.md">skill/agentic-commit.md</a> to your project.</p>
+
+<hr>
+
+<h2>Quick Reference</h2>
+
+<pre><code># Completed work — no → next needed
+feat(Scope): what (why)
+fix(Scope): what (why)
+refactor(Scope): what (why)
+
+# Work in progress — → next required
+wip(Scope): what (why) → next tasks</code></pre>
+
+<hr>
+
+<footer>
+    <p>Open source · MIT License · <a href="https://github.com/deligoez/agentic-commits">GitHub</a></p>
+</footer>
+
+</body>
+</html>
