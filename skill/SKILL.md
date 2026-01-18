@@ -64,6 +64,8 @@ refactor(UserService): extract validation utils (code dedup)
 | Work incomplete, know what's next | `wip` | → next enables Resume |
 | Work incomplete, don't know what's next | `feat` | If you can't specify next, it's effectively done |
 
+**Never guess `→ next`.** If you don't have implementation context (e.g., you're only committing code written by another agent), don't invent next steps. Use `feat` instead. Guessed `→ next` is worse than no `→ next`.
+
 ❌ **Bad**: Vague next
 ```bash
 wip(AuthController): add logout → continue later
