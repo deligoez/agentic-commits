@@ -228,7 +228,6 @@ fix(UserController): add validation (invalid IDs caused 500 error)</code></pre>
     <tr><td><strong>Atomic</strong></td><td>All capabilities</td><td>Clean history</td></tr>
 </table>
 
-<p><a href="https://github.com/deligoez/agentic-commits/tree/main/benchmark">Full benchmark methodology →</a></p>
 
 <hr>
 
@@ -281,6 +280,17 @@ wip(AuthController): add logout (security) → token blacklist, rate limiting</c
 
 <h3>Can I use → next on non-WIP commits?</h3>
 <p>No. <code>→ next</code> is only for <code>wip</code> commits. Completed work (<code>feat</code>, <code>fix</code>, etc.) shouldn't have next steps — if there are next steps, it's not done yet.</p>
+
+<h3>What if the implementing and committing agents are different?</h3>
+<p>This affects <strong>Resume</strong> capability only. The agent writing commits must have implementation context to know <code>→ next</code>.</p>
+<table>
+    <tr><th>Capability</th><th>Different agents?</th><th>Reason</th></tr>
+    <tr><td>Resume</td><td>❌ Needs same agent</td><td><code>→ next</code> requires knowing the plan</td></tr>
+    <tr><td>Review</td><td>✅ Works</td><td><code>(why)</code> can be inferred from diff</td></tr>
+    <tr><td>Handoff</td><td>✅ Works</td><td>Full history is visible</td></tr>
+    <tr><td>Code Review</td><td>✅ Works</td><td><code>(why)</code> + diff is enough</td></tr>
+</table>
+<p><strong>Rule:</strong> Never guess <code>→ next</code>. If you don't have implementation context, use <code>feat</code> instead of <code>wip</code>.</p>
 
 <h3>Can I apply this to an existing project?</h3>
 <p>Yes. Start using the format for new commits. You don't need to rewrite history. Over time, your recent commits will be agent-readable while older ones remain as-is.</p>
