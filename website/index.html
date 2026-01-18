@@ -57,59 +57,33 @@ a1b2c3d fix(SessionManager): validate user ID (silent auth failures)
 
 <hr>
 
-<h2>Four Capabilities</h2>
+<h2 id="four-capabilities">Four Capabilities</h2>
 
 <table>
-    <tr><th>Capability</th><th>When</th><th>Reads</th><th>Does</th></tr>
+    <tr><th>Capability</th><th>Reads</th><th>Agent</th><th>Human</th></tr>
     <tr>
         <td><strong>Resume</strong></td>
-        <td>After crash or session loss</td>
         <td><code>→ next</code></td>
-        <td>Continues interrupted work</td>
-    </tr>
-    <tr>
-        <td><strong>Review</strong></td>
-        <td>Understanding past decisions</td>
-        <td><code>(why)</code></td>
-        <td>Explains motivation</td>
-    </tr>
-    <tr>
-        <td><strong>Handoff</strong></td>
-        <td>New agent or developer</td>
-        <td>Full history</td>
-        <td>Summarizes state</td>
-    </tr>
-    <tr>
-        <td><strong>Code Review</strong></td>
-        <td>Evaluating a PR</td>
-        <td><code>(why)</code> + diff</td>
-        <td>Evaluates if solution fits problem</td>
-    </tr>
-</table>
-
-<h3>Works for both agents and humans</h3>
-
-<table>
-    <tr><th>Capability</th><th>Agent benefit</th><th>Human benefit</th></tr>
-    <tr>
-        <td><strong>Resume</strong></td>
         <td>Continue after crash</td>
         <td>Remember after vacation</td>
     </tr>
     <tr>
         <td><strong>Review</strong></td>
+        <td><code>(why)</code></td>
         <td>Explain past decisions</td>
         <td>Understand why code exists</td>
     </tr>
     <tr>
         <td><strong>Handoff</strong></td>
+        <td>Full history</td>
         <td>New agent takes over</td>
         <td>New developer onboarding</td>
     </tr>
     <tr>
         <td><strong>Code Review</strong></td>
-        <td>AI reviewer evaluates approach</td>
-        <td>Human reviewer understands intent</td>
+        <td><code>(why)</code> + diff</td>
+        <td>AI evaluates approach</td>
+        <td>Reviewer understands intent</td>
     </tr>
 </table>
 
@@ -212,7 +186,7 @@ fix(UserController): add validation (invalid IDs caused 500 error)</code></pre>
 
 <h2>Benchmark</h2>
 
-<p>We tested agent comprehension across 5 AI models (Claude, Codex, GLM) on Vite PR #21235.</p>
+<p>We tested agent comprehension across multiple AI models on Vite PR #21235.</p>
 
 <h3>Format Comparison</h3>
 
@@ -264,13 +238,7 @@ feat(AuthService): add JWT validation (token expiry protection)
 wip(AuthController): add logout (security) → token blacklist, rate limiting</code></pre>
 
 <h3>Is this only for AI agents?</h3>
-<p>No. All four capabilities benefit both agents and humans:</p>
-<ul>
-    <li><strong>Resume:</strong> Agent continues after crash / Human remembers after vacation</li>
-    <li><strong>Review:</strong> Agent explains decisions / Human understands why code exists</li>
-    <li><strong>Handoff:</strong> New agent takes over / New developer onboards</li>
-    <li><strong>Code Review:</strong> AI reviewer evaluates approach / Human reviewer understands intent</li>
-</ul>
+<p>No. All four capabilities benefit both agents and humans. See the <a href="#four-capabilities">capabilities table</a> above.</p>
 
 <h3>What if I forget to add (why)?</h3>
 <p>The commit loses value for Review and Code Review. Without <code>(why)</code>:</p>
@@ -307,7 +275,7 @@ wip(AuthController): add logout (security) → token blacklist, rate limiting</c
 
 <h2>Install</h2>
 
-<p>Install the skill for your coding agent. The skill includes hunk-splitting workflows and atomic commit automation.</p>
+<p>Choose your agent below. The full skill includes hunk-splitting workflows and atomic commit automation. For a quick start, see <a href="#spec-only">Specification Only</a> at the bottom.</p>
 
 <h3>Claude Code</h3>
 
@@ -412,7 +380,7 @@ curl -sL https://github.com/deligoez/agentic-commits/archive/main.tar.gz | \
 
 <p><small>Skills loaded on-demand. Also supports <code>.claude/skills/</code>.</small></p>
 
-<h3>Other Agents / Specification Only</h3>
+<h3 id="spec-only">Other Agents / Specification Only</h3>
 
 <p>Add to your config file (<code>CLAUDE.md</code>, <code>AGENTS.md</code>, <code>.cursorrules</code>, or system prompt):</p>
 
