@@ -11,7 +11,10 @@
       "name": "agentic-commit",
       "description": "Commit format that AI agents can act on. Splits changes into atomic hunks with structured format enabling Resume, Review, and Handoff.",
       "version": "1.0.0",
-      "source": ".",
+      "source": {
+        "source": "github",
+        "repo": "deligoez/agentic-commits"
+      },
       "category": "productivity"
     }
   ]
