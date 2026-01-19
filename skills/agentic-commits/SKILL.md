@@ -447,3 +447,55 @@ feat(AuthService): ...           # Single file
 feat(Admin/UserController): ...  # Disambiguated
 feat(AuthSystem): ...            # Component spanning files
 ```
+
+---
+
+# Troubleshooting
+
+## Custom Diff Tools
+
+If `git diff` shows side-by-side or custom formatting instead of unified diff:
+
+```bash
+# Always use --no-ext-diff to bypass external diff tools
+git diff --no-ext-diff
+
+# Or temporarily disable in current shell
+export GIT_EXTERNAL_DIFF=""
+```
+
+**Common tools that change diff format:**
+- `diff-so-fancy`
+- `delta`
+- `difftastic`
+- Custom `core.pager` settings
+
+## Splitting Hunks
+
+If `git add -p` can't split a hunk finely enough:
+
+1. **Save and reset approach:**
+   ```bash
+   cp file.txt /tmp/file-modified.txt
+   git checkout file.txt
+   # Apply changes incrementally using editor
+   ```
+
+2. **Patch file approach:**
+   ```bash
+   git diff --no-ext-diff file.txt > /tmp/full.patch
+   # Edit patch to include only desired hunks
+   git apply --cached /tmp/partial.patch
+   ```
+
+## Verifying Atomic Commits
+
+After committing, verify each commit is atomic:
+
+```bash
+git log --oneline -5
+git show --stat HEAD    # Check only relevant files changed
+git show HEAD           # Review actual changes
+```
+
+If a commit has mixed purposes, consider `git reset --soft HEAD~1` and re-committing.
