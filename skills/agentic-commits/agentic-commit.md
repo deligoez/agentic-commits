@@ -119,9 +119,11 @@ $ git log --oneline -5
 ### Step 1: Gather
 ```bash
 git status --short
-git diff
-git diff --staged
+git diff --no-ext-diff
+git diff --no-ext-diff --staged
 ```
+
+**Note**: `--no-ext-diff` ensures standard unified diff format.
 
 ### Step 2: Group Changes
 - Parse hunks (`@@ ... @@` blocks)

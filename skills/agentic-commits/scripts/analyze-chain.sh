@@ -21,11 +21,11 @@ fi
 
 echo ""
 echo "=== Staged Changes ==="
-git diff --cached --stat 2>/dev/null || echo "No staged changes"
+git diff --no-ext-diff --cached --stat 2>/dev/null || echo "No staged changes"
 
 echo ""
 echo "=== Staged Diff ==="
-git diff --cached 2>/dev/null || echo "No staged changes"
+git diff --no-ext-diff --cached 2>/dev/null || echo "No staged changes"
 
 echo ""
 echo "=== Working Directory Status ==="

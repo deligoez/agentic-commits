@@ -164,14 +164,18 @@ How agents determine work status from last commit:
 ## 1. Gather Changes
 
 ```bash
-git status --short && git diff && git diff --staged
+git status --short
+git diff --no-ext-diff
+git diff --no-ext-diff --staged
 ```
+
+**Note**: `--no-ext-diff` ensures standard unified diff format, bypassing custom diff tools (diff-so-fancy, delta, etc.).
 
 No changes → stop.
 
 ## 2. Analyze Each Hunk
 
-Parse `git diff` output. Hunk = `@@ ... @@` block.
+Parse unified diff output. Hunk = `@@ ... @@` block.
 
 **For EACH hunk, ask:**
 
@@ -417,6 +421,8 @@ refactor(AuthService): extract validation and add caching (interleaved - dedup +
 
 | Command | Purpose |
 |---------|---------|
+| `git diff --no-ext-diff` | Standard unified diff (bypasses custom tools) |
+| `git diff --no-ext-diff --staged` | Staged changes in unified format |
 | `git add -p` | Interactive hunk staging |
 | `git apply --cached <patch>` | Apply patch to staging |
 | `git apply --check <patch>` | Dry run |
