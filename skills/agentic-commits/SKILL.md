@@ -401,13 +401,15 @@ feat(UserService): add formatBalance with currency display
 
 ## Edge Case: Interleaved Changes
 
-If hunks can't be separated (too close together):
+If hunks can't be separated (too close together, lines interleaved):
 - Commit together
 - Explain both in (why)
 
 ```bash
-refactor(AuthService): extract validation and add caching (dedup + perf)
+refactor(AuthService): extract validation and add caching (interleaved - dedup + perf)
 ```
+
+**Note**: This is rare. Most "interleaved" cases can actually be split with `git add -p`.
 
 ---
 
