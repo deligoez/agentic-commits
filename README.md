@@ -42,7 +42,7 @@ Or install the full skill from the [skills/agentic-commit](skills/agentic-commit
 
 ## Documentation
 
-[Full Specification →](https://agenticcommits.deligoz.me)
+[Full Specification →](https://agentic-commits.deligoz.me)
 
 ## License
 
