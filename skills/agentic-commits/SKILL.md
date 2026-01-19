@@ -169,22 +169,51 @@ git status --short && git diff && git diff --staged
 
 No changes → stop.
 
-## 2. Parse & Group Hunks
+## 2. Analyze Each Hunk
 
 Parse `git diff` output. Hunk = `@@ ... @@` block.
 
-**Group by purpose:**
+**For EACH hunk, ask:**
+
+| Question | Purpose |
+|----------|---------|
+| What TYPE is this? (feat/fix/refactor/...) | Determines commit type |
+| What PROBLEM does this solve? | Determines (why) |
+| Can this be REVERTED independently? | Determines grouping |
+| Does this DEPEND on another hunk? | Determines grouping |
+
+**Create a hunk table:**
+
+```
+| Hunk | File:Line | Type | Purpose | Independent? |
+|------|-----------|------|---------|--------------|
+| 1    | Config:12 | fix  | typo    | yes          |
+| 2    | Config:45 | feat | new opt | yes          |
+| 3    | Auth:20   | fix  | null    | yes          |
+```
+
+## 3. Group by Type + Purpose
+
+**Grouping rules (strict order):**
+
+1. **Same type?** No → separate commits
+2. **Same specific problem?** No → separate commits
+3. **Direct dependency?** No → separate commits
+4. All yes → same commit
+
+**Type mapping:**
 - `feat` — new functionality
 - `fix` — bug fix
 - `refactor` — restructure without behavior change
 - `test` / `docs` / `chore`
 
-**Grouping rules:**
-- Related hunks → same group (dependency, semantic unity)
-- Unrelated hunks in same file → separate groups
-- Feature + its tests → same group
+**What is NOT "same problem":**
+- ❌ "Both are in Config file" — same file ≠ same problem
+- ❌ "Both improve auth" — same area ≠ same problem
+- ❌ "Both are fixes" — same type ≠ same problem
+- ✅ "Both fix the null user crash" — same specific bug
 
-## 3. Commit Each Group
+## 4. Commit Each Group
 
 Order: fixes → refactors → features
 
@@ -200,14 +229,14 @@ git commit -m "type(Scope): what (why)"
 rm /tmp/agentic-<n>.patch
 ```
 
-## 4. Verify
+## 5. Verify
 
 ```bash
 git log --oneline -<N>
 git status --short
 ```
 
-Remaining changes → continue grouping or `git add -A && git commit -m "chore(Misc): remaining changes (cleanup)"`
+Remaining changes → go back to step 2 and continue analysis.
 
 ---
 
