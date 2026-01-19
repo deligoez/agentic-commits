@@ -351,6 +351,54 @@ fix(UserController): add input validation (prevent invalid IDs)
 
 **Exception**: Only combine files when one directly depends on the other (e.g., new function + its usage).
 
+## Over-Grouping Anti-Patterns
+
+**Common mistakes that lead to non-atomic commits:**
+
+### ❌ "Same File" Fallacy
+```bash
+# BAD: Grouped because same file
+fix(nginx.conf): improve config (CORS + security + maintenance)
+```
+Same file ≠ same commit. Split by purpose:
+```bash
+fix(nginx.conf): restore origin fallback map (empty Origin handling)
+fix(nginx.conf): add security headers to maintenance (XSS protection)
+feat(nginx.conf): add tracing headers (observability)
+```
+
+### ❌ "Same Area" Fallacy
+```bash
+# BAD: Grouped because "all auth related"
+fix(AuthService): improve authentication (validation + logging + caching)
+```
+Same area ≠ same commit. Split by purpose:
+```bash
+fix(AuthService): validate token expiry (session hijack prevention)
+feat(AuthService): add auth logging (audit trail)
+refactor(AuthService): extract token cache (performance)
+```
+
+### ❌ "Related Improvements" Fallacy
+```bash
+# BAD: Grouped because "all improvements"
+refactor(Config): various improvements (cleanup)
+```
+"Improvements" is not a purpose. Split:
+```bash
+fix(Config): remove deprecated keys (compatibility)
+refactor(Config): rename ambiguous options (clarity)
+feat(Config): add validation schema (type safety)
+```
+
+### ✅ Valid Grouping: True Dependency
+```bash
+# GOOD: Function + its caller in same commit (would break if separate)
+feat(UserService): add formatBalance with currency display
+```
+
+---
+
 ## Edge Case: Interleaved Changes
 
 If hunks can't be separated (too close together):
