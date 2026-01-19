@@ -227,10 +227,12 @@ git add -p
 git commit -m "type(Scope): what (why)"
 
 # Option B: Patch files for precise control
-# Write patch to /tmp/agentic-<n>.patch
-git apply --cached /tmp/agentic-<n>.patch
+# Create unique temp dir (safe for parallel agents)
+AGENTIC_TMP=$(mktemp -d /tmp/agentic-XXXXXX)
+# Write patch to $AGENTIC_TMP/<n>.patch
+git apply --cached $AGENTIC_TMP/<n>.patch
 git commit -m "type(Scope): what (why)"
-rm /tmp/agentic-<n>.patch
+rm -rf $AGENTIC_TMP  # cleanup when done
 ```
 
 ## 5. Verify
@@ -476,16 +478,20 @@ If `git add -p` can't split a hunk finely enough:
 
 1. **Save and reset approach:**
    ```bash
-   cp file.txt /tmp/file-modified.txt
+   AGENTIC_TMP=$(mktemp -d /tmp/agentic-XXXXXX)
+   cp file.txt $AGENTIC_TMP/file-modified.txt
    git checkout file.txt
    # Apply changes incrementally using editor
+   rm -rf $AGENTIC_TMP
    ```
 
 2. **Patch file approach:**
    ```bash
-   git diff --no-ext-diff file.txt > /tmp/full.patch
+   AGENTIC_TMP=$(mktemp -d /tmp/agentic-XXXXXX)
+   git diff --no-ext-diff file.txt > $AGENTIC_TMP/full.patch
    # Edit patch to include only desired hunks
-   git apply --cached /tmp/partial.patch
+   git apply --cached $AGENTIC_TMP/partial.patch
+   rm -rf $AGENTIC_TMP
    ```
 
 ## Verifying Atomic Commits
