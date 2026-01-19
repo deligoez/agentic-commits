@@ -90,6 +90,42 @@ wip(AuthController): add logout (security) → token blacklist, rate limiting
 
 If the previous session ended with `feat` and you're continuing work, just create new commits. Don't try to add `→ next` to old commits.
 
+## Type Separation Rule
+
+**Different purposes = Different commits. Always.**
+
+Even with the SAME type, different problems = different commits:
+
+| If you have... | Then create... |
+|----------------|----------------|
+| 1 fix + 1 feat | 2 commits (different types) |
+| 2 fixes (different bugs) | 2 commits (same type, different problems) |
+| 1 refactor + 1 fix | 2 commits (different types) |
+| 3 features (different features) | 3 commits (same type, different purposes) |
+
+**The rule is about PURPOSE, not just TYPE.**
+
+### ❌ Bad: Mixing types
+```bash
+fix(Config): fix typo and add new option (cleanup + feature)
+```
+
+### ❌ Bad: Same type, different problems
+```bash
+fix(Config): fix typo and handle null case (two unrelated fixes)
+```
+
+### ✅ Good: Separate by purpose
+```bash
+fix(Config): fix typo in timeout key (silent failures)
+fix(Config): handle null config gracefully (crash prevention)
+feat(Config): add retry option (resilience)
+```
+
+**Rule**: One commit = One purpose. Type is secondary.
+
+---
+
 ## Completion Signals
 
 How agents determine work status from last commit:
