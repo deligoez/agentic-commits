@@ -54,6 +54,16 @@ refactor(UserService): extract validation utils (code dedup)
 
 # Critical Rules
 
+## One File Per Commit (STRICT)
+
+**Each file MUST be committed separately.** This is the most important rule.
+
+- Even for the same issue/task, each file gets its own commit
+- Grouping files as "same problem" or "related changes" is **NOT allowed**
+- Only exception: New function + code that DIRECTLY calls it (true compile-time dependency)
+
+See [Hunk Grouping](#one-file-per-commit-strict) for detailed examples.
+
 ## WIP Decision Rule
 
 **Only use `wip` if you can write specific `→ next` tasks.**
@@ -173,30 +183,44 @@ git diff --no-ext-diff --staged
 
 No changes → stop.
 
-## 2. Analyze Each Hunk
+## 2. Group Changes by File (MANDATORY)
+
+**FIRST, separate changes by file.** Each file = separate commit (with rare exceptions).
+
+```
+| File | Hunks | Commit? |
+|------|-------|---------|
+| AuthService.php | 2 | YES - separate commit |
+| UserController.php | 1 | YES - separate commit |
+| Config.php | 3 | YES - separate commit |
+```
+
+**Only after file separation**, analyze hunks within each file.
+
+## 3. Analyze Hunks Within Each File
 
 Parse unified diff output. Hunk = `@@ ... @@` block.
 
-**For EACH hunk, ask:**
+**For EACH hunk in a single file, ask:**
 
 | Question | Purpose |
 |----------|---------|
 | What TYPE is this? (feat/fix/refactor/...) | Determines commit type |
 | What PROBLEM does this solve? | Determines (why) |
-| Can this be REVERTED independently? | Determines grouping |
-| Does this DEPEND on another hunk? | Determines grouping |
+| Can this be REVERTED independently? | Determines if same-file split needed |
 
-**Create a hunk table:**
+**Create a hunk table (per file):**
 
 ```
-| Hunk | File:Line | Type | Purpose | Independent? |
-|------|-----------|------|---------|--------------|
-| 1    | Config:12 | fix  | typo    | yes          |
-| 2    | Config:45 | feat | new opt | yes          |
-| 3    | Auth:20   | fix  | null    | yes          |
+| Hunk | Line | Type | Purpose | Independent? |
+|------|------|------|---------|--------------|
+| 1    | 12   | fix  | typo    | yes          |
+| 2    | 45   | feat | new opt | yes          |
 ```
 
-## 3. Group by Type + Purpose
+If hunks in the same file have different purposes → multiple commits for that file.
+
+## 4. Group by Type + Purpose (Within Same File)
 
 **Grouping rules (strict order):**
 
@@ -217,29 +241,38 @@ Parse unified diff output. Hunk = `@@ ... @@` block.
 - ❌ "Both are fixes" — same type ≠ same problem
 - ✅ "Both fix the null user crash" — same specific bug
 
-## 4. Commit Each Group
+## 5. Commit Each Group
 
 Order: fixes → refactors → features
 
 ```bash
-# Option A: Interactive staging
-git add -p
+# Option A: Interactive staging (for single file)
+git add -p <file>
 git commit -m "type(Scope): what (why)"
 
-# Option B: Patch files for precise control
-# Create unique temp dir (safe for parallel agents)
-AGENTIC_TMP=$(mktemp -d /tmp/agentic-XXXXXX)
-# Write patch to $AGENTIC_TMP/<n>.patch
-git apply --cached $AGENTIC_TMP/<n>.patch
+# Option B: Stage entire file (when all changes in file are same purpose)
+git add <file>
 git commit -m "type(Scope): what (why)"
-rm -rf $AGENTIC_TMP  # cleanup when done
+
+# Option C: Patch files for precise control
+AGENTIC_TMP=$(mktemp -d /tmp/agentic-XXXXXX)
+git diff --no-ext-diff <file> > $AGENTIC_TMP/file.patch
+# Edit patch if needed
+git apply --cached $AGENTIC_TMP/file.patch
+git commit -m "type(Scope): what (why)"
+rm -rf $AGENTIC_TMP
 ```
 
-## 5. Verify
+## 6. Verify (IMPORTANT)
 
 ```bash
 git log --oneline -<N>
 git status --short
+
+# CRITICAL: Verify only ONE file was changed per commit
+git show --stat HEAD | grep '|' | wc -l
+# Expected: 1 (one file per commit)
+# If > 1: git reset --soft HEAD~1 and split into separate commits
 ```
 
 Remaining changes → go back to step 2 and continue analysis.
@@ -340,22 +373,36 @@ feat(SessionManager): add refresh capability (seamless re-auth)
 | Config + code using it | Same |
 | Same fix type in different files | **Separate** |
 
-## Critical Rule: One File Per Commit (Default)
+## One File Per Commit (STRICT)
 
-Different files should be in **separate commits** unless there's a direct dependency.
+**Each file MUST be committed separately.** This rule is strictly enforced.
 
-❌ **Bad**: Combining validation fixes across files
+- Even for the same issue/task, each file gets its own commit
+- Grouping files as "same problem" or "related changes" is **NOT allowed**
+- Only exception: New function + code that DIRECTLY calls it (true compile-time dependency)
+
+### ❌ Bad: Combining multiple files
 ```bash
+# Wrong - multiple files in one commit
 fix(AuthService,UserController): add input validation (prevent errors)
+
+# Wrong - grouping "related" changes
+refactor(SalesChannel): remove promoted sales channels (no longer used)
+# ^ Contains changes to SalesChannel.php, RetailerComputedAttributes.php, Controller.php
 ```
 
-✅ **Good**: Separate commits per file
+### ✅ Good: One file per commit
 ```bash
 fix(AuthService): add input validation (prevent empty credentials)
 fix(UserController): add input validation (prevent invalid IDs)
+
+# Each file is a separate commit even if fixing the same issue:
+refactor(SalesChannel): remove PROMOTED_SALES_CHANNELS constant
+refactor(RetailerComputedAttributes): remove promoted union
+refactor(RetailerActionController): remove promoted filter
 ```
 
-**Exception**: Only combine files when one directly depends on the other (e.g., new function + its usage).
+**Exception**: Only combine files when one directly depends on the other (e.g., new function + its caller in same commit).
 
 ## Over-Grouping Anti-Patterns
 
@@ -500,8 +547,19 @@ After committing, verify each commit is atomic:
 
 ```bash
 git log --oneline -5
-git show --stat HEAD    # Check only relevant files changed
+git show --stat HEAD    # Check files changed
+
+# CRITICAL: Verify only ONE file per commit
+git show --stat HEAD | grep '|' | wc -l
+# Expected output: 1
+# If output > 1: You violated "One File Per Commit" rule!
+
 git show HEAD           # Review actual changes
 ```
 
-If a commit has mixed purposes, consider `git reset --soft HEAD~1` and re-committing.
+If a commit has multiple files:
+```bash
+git reset --soft HEAD~1    # Undo commit, keep changes staged
+git reset HEAD             # Unstage all
+# Now commit each file separately
+```
