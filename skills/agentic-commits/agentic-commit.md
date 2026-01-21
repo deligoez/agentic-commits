@@ -46,25 +46,43 @@ fix(SessionManager): validate user ID (silent auth failures)
 refactor(UserService): extract validation utils (code dedup)
 ```
 
+## One File Per Commit (STRICT)
+
+**Each file MUST be committed separately.** This rule is strictly enforced.
+
+- Even for the same issue, each file gets its own commit
+- Grouping files as "same problem" or "related changes" is **NOT allowed**
+- Only exception: New function + code that DIRECTLY calls it (true compile-time dependency)
+
+### ❌ Bad: Combining multiple files
+```bash
+# Wrong - multiple files in one commit
+fix(AuthService,UserController): add validation (prevent errors)
+
+# Wrong - grouping "related" changes
+refactor(SalesChannel): remove promoted sales channels (no longer used)
+# ^ Contains changes to SalesChannel.php, RetailerComputedAttributes.php, Controller.php
+```
+
+### ✅ Good: One file per commit
+```bash
+fix(AuthService): add validation (prevent empty credentials)
+fix(UserController): add validation (prevent invalid IDs)
+
+# Each file is a separate commit even if fixing the same issue:
+refactor(SalesChannel): remove PROMOTED_SALES_CHANNELS constant
+refactor(RetailerComputedAttributes): remove promoted union
+refactor(RetailerActionController): remove promoted filter
+```
+
 ## Atomic Commits
 
 Split changes into atomic, single-purpose commits:
 
-1. **One logical change per commit** — Don't mix unrelated changes
-2. **Hunk-level splitting** — Same file can have multiple commits if changes are independent
-3. **One file per commit (default)** — Different files should be separate commits unless directly dependent
+1. **One file per commit** — Each file is a separate commit (see above)
+2. **One logical change per commit** — Don't mix unrelated changes
+3. **Hunk-level splitting** — Same file can have multiple commits if changes are independent
 4. **Commit order** — fixes → refactors → features
-
-### ❌ Bad: Combining files
-```bash
-fix(AuthService,UserController): add validation (prevent errors)
-```
-
-### ✅ Good: Separate commits
-```bash
-fix(AuthService): add validation (prevent empty credentials)
-fix(UserController): add validation (prevent invalid IDs)
-```
 
 ### Same File, Multiple Concerns
 
@@ -125,30 +143,45 @@ git diff --no-ext-diff --staged
 
 **Note**: `--no-ext-diff` ensures standard unified diff format.
 
-### Step 2: Group Changes
-- Parse hunks (`@@ ... @@` blocks)
-- Group related changes together
-- Separate unrelated changes
+### Step 2: Group by File (MANDATORY)
+**FIRST, separate changes by file.** Each file = separate commit.
 
-### Step 3: Commit Each Group
+```
+| File | Commit? |
+|------|---------|
+| AuthService.php | YES - separate commit |
+| UserController.php | YES - separate commit |
+```
+
+### Step 3: Analyze Hunks (Within Each File)
+- Parse hunks (`@@ ... @@` blocks) within a single file
+- If different purposes → multiple commits for same file
+- If same purpose → one commit for that file
+
+### Step 4: Commit Each File
 ```bash
-git add -p  # or use patch files for precise control
+git add <file>  # or git add -p <file> for partial
 git commit -m "type(Scope): what (why) [→ next]"
 ```
 
-### Step 4: Verify
+### Step 5: Verify (CRITICAL)
 ```bash
 git log --oneline -5
 git status --short
+
+# Verify only ONE file per commit
+git show --stat HEAD | grep '|' | wc -l
+# Expected: 1 — If > 1, you violated the rule!
 ```
 
 ## Key Rules
 
-1. **Always include WHY** — Motivation enables Review
-2. **Always include NEXT for WIP** — Continuation enables Resume
-3. **Always include Scope** — File name enables fast scanning
-4. **One purpose per commit** — Atomic commits enable clean history
-5. **Be specific** — "security" not "improvements"
+1. **One file per commit** — Each file is a separate commit (STRICT - see above)
+2. **Always include WHY** — Motivation enables Review
+3. **Always include NEXT for WIP** — Continuation enables Resume
+4. **Always include Scope** — File name enables fast scanning
+5. **One purpose per commit** — Atomic commits enable clean history
+6. **Be specific** — "security" not "improvements"
 
 ## WIP Decision Rule
 
