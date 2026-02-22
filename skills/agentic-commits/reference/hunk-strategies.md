@@ -39,50 +39,29 @@ Yes → can be separate
 
 ## Same File, Multiple Concerns
 
-### Technique 1: Intermediate File via hash-object (Option B — RECOMMENDED for AI agents)
+Use the `git-commit-plan` script to handle splitting automatically. The script supports three strategies, auto-detected from JSON fields:
 
-AI generates a file containing ONLY the changes for one commit. Working tree is never touched.
+| Strategy | JSON Fields | How It Works |
+|----------|-------------|--------------|
+| **full** | `{"path": "file"}` | `git add` — all changes in file |
+| **hunk-select** | `{"path": "file", "hunks": [0,2]}` | Extracts specific `@@` blocks from `-U0` diff |
+| **hash-object** | `{"path": "file", "intermediate": "/tmp/v1"}` | `git hash-object` + `git update-index` — never touches working tree |
 
 ```bash
-AGENTIC_TMP=$(mktemp -d /tmp/agentic-XXXXXX)
-# Write file as it should look after ONLY the first commit's changes
-cat > "$AGENTIC_TMP/intermediate.ext" << 'EOF'
-... file with only first logical change applied ...
+cat > /tmp/plan.json << 'EOF'
+{
+  "commits": [
+    {"message": "fix(File): first concern (reason)", "files": [{"path": "file.ext", "hunks": [0]}]},
+    {"message": "feat(File): second concern (reason)", "files": [{"path": "file.ext"}]}
+  ]
+}
 EOF
-BLOB=$(git hash-object -w "$AGENTIC_TMP/intermediate.ext")
-git update-index --cacheinfo 100644,"$BLOB",file.ext
-git commit -m "fix(File): first concern (reason)"
-rm -rf "$AGENTIC_TMP"
-# Working tree still has ALL changes — stage remaining:
-git add file.ext
-git commit -m "feat(File): second concern (reason)"
+git-commit-plan /tmp/plan.json
 ```
 
-**Why this is best for AI agents:**
-- AI naturally generates file content (not diffs)
-- Working tree is never modified — no data loss risk
-- Supports semantic grouping (non-adjacent hunks with same purpose)
+**hash-object** is best for AI agents: generates file content (not diffs), never touches working tree, supports semantic grouping across non-adjacent hunks.
 
-### Technique 2: Zero-context diff extraction (Option C)
-
-Extract specific `@@` hunks from a `-U0` diff:
-
-```bash
-AGENTIC_TMP=$(mktemp -d /tmp/agentic-XXXXXX)
-git diff --no-ext-diff -U0 file.ext > "$AGENTIC_TMP/full.patch"
-# Keep diff header (4 lines) + desired @@ blocks only
-git apply --cached --unidiff-zero "$AGENTIC_TMP/partial.patch"
-git commit -m "fix(File): first concern (reason)"
-# Regenerate diff (index hash changed after commit)
-git diff --no-ext-diff -U0 file.ext > "$AGENTIC_TMP/remaining.patch"
-git apply --cached --unidiff-zero "$AGENTIC_TMP/remaining.patch"
-git commit -m "feat(File): second concern (reason)"
-rm -rf "$AGENTIC_TMP"
-```
-
-**Note:** `--unidiff-zero` is mandatory with `-U0` patches. Always regenerate diff after each apply because the index hash changes.
-
-Both techniques enable atomic commits that make **Review** clearer — each commit has one purpose.
+Both splitting strategies enable atomic commits that make **Review** clearer — each commit has one purpose.
 
 ## Commit Order
 
