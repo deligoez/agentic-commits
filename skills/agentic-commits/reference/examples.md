@@ -22,13 +22,47 @@ fix(SessionManager): validate user ID (silent auth failures)
 feat(SessionManager): add refresh capability (seamless re-auth)
 ```
 
+### How to Split (hash-object technique)
+
+The working tree has both changes. AI generates an intermediate file with ONLY the fix:
+
+```bash
+AGENTIC_TMP=$(mktemp -d /tmp/agentic-XXXXXX)
+
+# Step 1: Write file with only the fix applied (no refreshSession yet)
+cat > "$AGENTIC_TMP/intermediate.ts" << 'EOF'
+// ... original file content ...
+function createSession() {
+  if (!user.id) throw new Error();  // ← fix included
+  // ...
+}
+
+function validateSession() {
+  // ...                             // ← NO refreshSession here
+}
+EOF
+
+# Step 2: Stage intermediate state via plumbing (working tree untouched)
+BLOB=$(git hash-object -w "$AGENTIC_TMP/intermediate.ts")
+git update-index --cacheinfo 100644,"$BLOB",SessionManager.ts
+git commit -m "fix(SessionManager): validate user ID (silent auth failures)"
+rm -rf "$AGENTIC_TMP"
+
+# Step 3: Stage remaining changes (the feature) from working tree
+git add SessionManager.ts
+git commit -m "feat(SessionManager): add refresh capability (seamless re-auth)"
+```
+
+**Key insight:** The AI generates the intermediate file content — this is natural for LLMs.
+The working tree is never modified, so there's no risk of data loss.
+
 ---
 
-## Related Hunks Across Files → One Commit
+## Exception: True Compile-Time Dependency → One Commit
 
 **Changes:**
-- `utils/format.ts` — new function
-- `UserController.ts` — uses it
+- `utils/format.ts` — new function (would be dead code alone)
+- `UserController.ts` — calls the new function
 
 **Commit:**
 
@@ -36,7 +70,8 @@ feat(SessionManager): add refresh capability (seamless re-auth)
 feat(UserController): display formatted balance (better UX)
 ```
 
-Note: Related utility added in same commit since they're semantically linked.
+Note: New function + its direct caller are the ONLY valid multi-file commit.
+This is the exception to "One File Per Commit." Most "related" changes do NOT qualify.
 
 ---
 
