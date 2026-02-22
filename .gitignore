@@ -1,4 +1,5 @@
 .idea/
+.tldr/
 .DS_Store
 *.swp
 *.swo
