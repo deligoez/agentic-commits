@@ -159,29 +159,8 @@ git diff --no-ext-diff --staged
 - If same purpose → one commit for that file
 
 ### Step 4: Commit Each File
-```bash
-# All changes in file are same purpose:
-git add <file>
-git commit -m "type(Scope): what (why) [→ next]"
 
-# Same file, multiple concerns — use hash-object (RECOMMENDED for AI agents):
-AGENTIC_TMP=$(mktemp -d /tmp/agentic-XXXXXX)
-# Write file with only the first logical change applied
-cat > "$AGENTIC_TMP/intermediate.ext" << 'EOF'
-... file content with only first set of changes ...
-EOF
-BLOB=$(git hash-object -w "$AGENTIC_TMP/intermediate.ext")
-git update-index --cacheinfo 100644,"$BLOB",<file>
-git commit -m "type(Scope): first concern (why)"
-rm -rf "$AGENTIC_TMP"
-# Remaining changes still in working tree:
-git add <file>
-git commit -m "type(Scope): second concern (why)"
-```
-
-### Alternative: Commit Plan Script (MOST TOKEN-EFFICIENT)
-
-Output a JSON plan and let the script handle everything:
+Output a JSON commit plan and let the script handle staging and committing:
 
 ```bash
 cat > /tmp/plan.json << 'EOF'
@@ -195,7 +174,19 @@ EOF
 git-commit-plan /tmp/plan.json
 ```
 
-File fields: no extras = `git add`, `"hunks": [0,2]` = hunk-select, `"intermediate": "/tmp/v1"` = hash-object.
+**Schema:** `schemas/commit-plan.schema.json`
+
+**File strategies** (auto-detected from fields):
+- No extra fields → `git add` (full file)
+- `"hunks": [0,2]` → extract specific `-U0` diff hunks
+- `"intermediate": "/tmp/v1"` → `git hash-object` + `git update-index` (best for AI agents — never touches working tree)
+
+**Multiple plans** (for large diffs, split into ~500 line chunks):
+```bash
+git-commit-plan 001.json 002.json 003.json
+# Or a directory of plans (alphabetical order)
+git-commit-plan /tmp/agentic-XXXXXX/
+```
 
 ### Step 5: Verify (CRITICAL)
 ```bash
