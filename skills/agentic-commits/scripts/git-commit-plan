@@ -5,7 +5,8 @@
 # The AI agent outputs a JSON plan describing what goes in each commit.
 # This script executes the plan: staging, committing, and cleanup.
 #
-# Usage: git-commit-plan <plan.json>
+# Usage: git-commit-plan <plan.json> [plan2.json ...]
+#        git-commit-plan <directory>
 #        git-commit-plan --stdin < plan.json
 #        echo '{"commits":[...]}' | git-commit-plan --stdin
 #
@@ -23,6 +24,8 @@
 #   ]
 # }
 #
+# Schema: schemas/commit-plan.schema.json
+#
 # File strategies (auto-detected from fields):
 #   - full:        No hunks or intermediate → git add <file>
 #   - hunk-select: hunks array → extract specific hunks from -U0 diff
@@ -39,6 +42,11 @@ GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
+
+# Global counters for multi-plan accumulation
+_committed=0
+_failed=0
+_total_commits=0
 
 # --- Helpers ---
 
@@ -63,6 +71,91 @@ check_dependencies() {
     command -v jq >/dev/null 2>&1 || die "jq is required but not installed"
     command -v git >/dev/null 2>&1 || die "git is required but not installed"
     git rev-parse --is-inside-work-tree >/dev/null 2>&1 || die "not inside a git repository"
+}
+
+# --- Plan Validation ---
+
+# Validate a JSON commit plan structure
+# Args: $1 = JSON string
+# Returns: 0 = valid, 1 = invalid (errors on stderr)
+# Warnings go to stderr but do not affect return code
+validate_plan() {
+    local plan_json="$1"
+
+    # Check valid JSON
+    if ! echo "$plan_json" | jq empty 2>/dev/null; then
+        echo -e "${RED}ERROR:${NC} invalid JSON in plan" >&2
+        return 1
+    fi
+
+    # Structural validation via single jq call
+    local errors
+    errors=$(echo "$plan_json" | jq -r '
+        def validate:
+            # commits must be a non-empty array
+            (if (.commits | type) != "array" then ["missing or invalid commits array"] else [] end) +
+            (if (.commits | type) == "array" and (.commits | length) == 0 then ["no commits in plan"] else [] end) +
+
+            # validate each commit
+            (if (.commits | type) == "array" then
+                [.commits | to_entries[] | .key as $i | .value |
+                    # message must be a non-empty string
+                    (if (.message | type) != "string" or (.message | length) == 0
+                     then "commit[\($i)]: missing or empty message" else empty end),
+
+                    # files must be a non-empty array
+                    (if (.files | type) != "array" or (.files | length) == 0
+                     then "commit[\($i)]: missing or empty files array" else empty end),
+
+                    # validate each file entry
+                    (if (.files | type) == "array" then
+                        .files | to_entries[] | .key as $j | .value |
+                            # path must be a non-empty string
+                            (if (.path | type) != "string" or (.path | length) == 0
+                             then "commit[\($i)].files[\($j)]: missing or empty path" else empty end),
+
+                            # hunks and intermediate are mutually exclusive
+                            (if .hunks != null and .intermediate != null
+                             then "commit[\($i)].files[\($j)]: cannot have both hunks and intermediate" else empty end),
+
+                            # hunks must be non-negative integers
+                            (if .hunks != null then
+                                .hunks | to_entries[] | .key as $k | .value |
+                                    if (type != "number") or (. != (. | floor)) or (. < 0)
+                                    then "commit[\($i)].files[\($j)].hunks[\($k)]: must be a non-negative integer"
+                                    else empty end
+                             else empty end)
+                     else empty end)
+                ]
+             else [] end);
+
+        validate | .[]
+    ' 2>/dev/null)
+
+    if [ -n "$errors" ]; then
+        while IFS= read -r err; do
+            echo -e "${RED}ERROR:${NC} $err" >&2
+        done <<< "$errors"
+        return 1
+    fi
+
+    # Commit message format warning (non-fatal)
+    local warnings
+    warnings=$(echo "$plan_json" | jq -r '
+        [.commits | to_entries[] | .key as $i | .value |
+            if (.message | test("^(feat|fix|wip|refactor|test|docs|chore)\\(") | not)
+            then "commit[\($i)]: message does not match format type(Scope): what (why)"
+            else empty end
+        ] | .[]
+    ' 2>/dev/null) || true
+
+    if [ -n "$warnings" ]; then
+        while IFS= read -r w; do
+            warn "$w" >&2
+        done <<< "$warnings"
+    fi
+
+    return 0
 }
 
 # --- Hunk Extraction ---
@@ -184,41 +277,17 @@ stage_file() {
     esac
 }
 
-# --- Main ---
+# --- Process Plan ---
 
-main() {
-    check_dependencies
-
-    # Parse arguments
-    local plan_json
-    if [ "${1:-}" = "--stdin" ]; then
-        plan_json=$(cat)
-    elif [ -n "${1:-}" ]; then
-        if [ ! -f "$1" ]; then
-            die "plan file not found: '$1'"
-        fi
-        plan_json=$(cat "$1")
-    else
-        die "usage: git-commit-plan <plan.json> | git-commit-plan --stdin"
-    fi
-
-    # Validate JSON
-    if ! echo "$plan_json" | jq empty 2>/dev/null; then
-        die "invalid JSON in plan"
-    fi
+# Execute all commits in a validated plan
+# Args: $1 = JSON string (already validated)
+# Updates global _committed, _failed, _total_commits counters
+process_plan() {
+    local plan_json="$1"
 
     local commit_count
     commit_count=$(echo "$plan_json" | jq '.commits | length')
-
-    if [ "$commit_count" -eq 0 ]; then
-        die "no commits in plan"
-    fi
-
-    info "Executing commit plan ($commit_count commits)"
-    echo ""
-
-    local committed=0
-    local failed=0
+    _total_commits=$((_total_commits + commit_count))
 
     for i in $(seq 0 $((commit_count - 1))); do
         local commit_json
@@ -250,7 +319,7 @@ main() {
         if [ "$stage_failed" -eq 1 ]; then
             warn "  Skipping commit (staging failed)"
             git reset HEAD -- . >/dev/null 2>&1 || true
-            failed=$((failed + 1))
+            _failed=$((_failed + 1))
             continue
         fi
 
@@ -269,21 +338,121 @@ main() {
                 warn "  Committed but $files_changed files changed (expected 1)"
             fi
             success "  Committed ($files_changed file)"
-            committed=$((committed + 1))
+            _committed=$((_committed + 1))
         else
             warn "  Commit failed"
             git reset HEAD -- . >/dev/null 2>&1 || true
-            failed=$((failed + 1))
+            _failed=$((_failed + 1))
         fi
+    done
+}
+
+# --- Main ---
+
+main() {
+    check_dependencies
+
+    # Collect plan sources
+    local plan_files=()
+    local from_stdin=0
+
+    if [ "${1:-}" = "--stdin" ]; then
+        from_stdin=1
+    elif [ $# -eq 0 ]; then
+        die "usage: git-commit-plan <plan.json|dir> [...] | git-commit-plan --stdin"
+    else
+        # Process all arguments
+        for arg in "$@"; do
+            if [ -d "$arg" ]; then
+                # Directory: collect all .json files sorted alphabetically
+                local dir_files
+                dir_files=()
+                while IFS= read -r -d '' f; do
+                    dir_files+=("$f")
+                done < <(find "$arg" -maxdepth 1 -name '*.json' -print0 | sort -z)
+
+                if [ ${#dir_files[@]} -eq 0 ]; then
+                    die "no JSON files found in directory: '$arg'"
+                fi
+
+                plan_files+=("${dir_files[@]}")
+            elif [ -f "$arg" ]; then
+                plan_files+=("$arg")
+            else
+                die "plan file not found: '$arg'"
+            fi
+        done
+    fi
+
+    # Process stdin mode (single plan)
+    if [ "$from_stdin" -eq 1 ]; then
+        local plan_json
+        plan_json=$(cat)
+
+        if ! validate_plan "$plan_json"; then
+            exit 1
+        fi
+
+        local commit_count
+        commit_count=$(echo "$plan_json" | jq '.commits | length')
+        info "Executing commit plan ($commit_count commits)"
+        echo ""
+
+        process_plan "$plan_json"
+
+        echo ""
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        success "Done: $_committed committed, $_failed failed"
+
+        echo ""
+        git log --oneline -"$_total_commits" 2>/dev/null
+
+        if ! git diff --quiet 2>/dev/null; then
+            echo ""
+            warn "Remaining unstaged changes:"
+            git diff --stat 2>/dev/null
+        fi
+
+        [ "$_failed" -eq 0 ] && return 0 || return 1
+    fi
+
+    # Process file(s) mode
+    local plan_count=${#plan_files[@]}
+    local any_validation_failed=0
+
+    for plan_file in "${plan_files[@]}"; do
+        local plan_json
+        plan_json=$(cat "$plan_file")
+
+        if ! validate_plan "$plan_json"; then
+            warn "Skipping invalid plan: $plan_file"
+            any_validation_failed=1
+            continue
+        fi
+
+        local commit_count
+        commit_count=$(echo "$plan_json" | jq '.commits | length')
+
+        if [ "$plan_count" -gt 1 ]; then
+            echo ""
+            info "Plan: $(basename "$plan_file") ($commit_count commits)"
+        else
+            info "Executing commit plan ($commit_count commits)"
+        fi
+        echo ""
+
+        process_plan "$plan_json"
     done
 
     echo ""
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    success "Done: $committed committed, $failed failed"
+    success "Done: $_committed committed, $_failed failed"
 
-    # Show result
-    echo ""
-    git log --oneline -"$commit_count" 2>/dev/null
+    # Show recent commits
+    if [ "$_total_commits" -gt 0 ]; then
+        echo ""
+        git log --oneline -"$_total_commits" 2>/dev/null
+    fi
 
     # Check for remaining changes
     if ! git diff --quiet 2>/dev/null; then
@@ -292,7 +461,7 @@ main() {
         git diff --stat 2>/dev/null
     fi
 
-    [ "$failed" -eq 0 ] && return 0 || return 1
+    [ "$_failed" -eq 0 ] && [ "$any_validation_failed" -eq 0 ] && return 0 || return 1
 }
 
 main "$@"
