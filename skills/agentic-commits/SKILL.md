@@ -246,22 +246,88 @@ If hunks in the same file have different purposes → multiple commits for that 
 Order: fixes → refactors → features
 
 ```bash
-# Option A: Interactive staging (for single file)
-git add -p <file>
-git commit -m "type(Scope): what (why)"
-
-# Option B: Stage entire file (when all changes in file are same purpose)
+# Option A: Stage entire file (when all changes in file are same purpose)
 git add <file>
 git commit -m "type(Scope): what (why)"
 
-# Option C: Patch files for precise control
+# Option B: Intermediate file via hash-object (RECOMMENDED for AI agents)
+# AI generates a file containing ONLY the changes for this commit
+# Working tree is NEVER touched — safe, deterministic, no side effects
 AGENTIC_TMP=$(mktemp -d /tmp/agentic-XXXXXX)
-git diff --no-ext-diff <file> > $AGENTIC_TMP/file.patch
-# Edit patch if needed
-git apply --cached $AGENTIC_TMP/file.patch
+# Write intermediate file with only the first logical change applied
+cat > "$AGENTIC_TMP/intermediate.ext" << 'INTERMEDIATE'
+... file content with only first set of changes ...
+INTERMEDIATE
+BLOB=$(git hash-object -w "$AGENTIC_TMP/intermediate.ext")
+git update-index --cacheinfo 100644,"$BLOB",<file>
 git commit -m "type(Scope): what (why)"
-rm -rf $AGENTIC_TMP
+rm -rf "$AGENTIC_TMP"
+# Remaining changes are still in working tree — git add for next commit
+
+# Option C: Zero-context diff (good for line-level hunk separation)
+AGENTIC_TMP=$(mktemp -d /tmp/agentic-XXXXXX)
+git diff --no-ext-diff -U0 <file> > "$AGENTIC_TMP/full.patch"
+# Extract specific @@ hunks into separate patch files
+# Keep diff header (first 4 lines) + desired @@ blocks
+git apply --cached --unidiff-zero "$AGENTIC_TMP/hunk1.patch"
+git commit -m "type(Scope): what (why)"
+# IMPORTANT: Regenerate diff after each apply (index hash changed)
+git diff --no-ext-diff -U0 <file> > "$AGENTIC_TMP/remaining.patch"
+git apply --cached --unidiff-zero "$AGENTIC_TMP/remaining.patch"
+git commit -m "type(Scope): what (why)"
+rm -rf "$AGENTIC_TMP"
 ```
+
+### Choosing a Staging Technique
+
+| Technique | When to Use | Working Tree Safe? |
+|-----------|-------------|:--:|
+| **Option A**: `git add <file>` | All changes in file are same purpose | N/A |
+| **Option B**: `hash-object` | Same file, multiple semantic concerns (AI agents) | ✅ |
+| **Option C**: `-U0` diff | Same file, hunks map cleanly to concerns | ✅ |
+
+**Why Option B is best for AI agents:**
+- AI naturally generates full file content (not diffs)
+- Working tree is never modified — no risk of data loss
+- Pre-commit hooks see only the staged changes
+- Supports semantic grouping (changes that span multiple hunks but share one purpose)
+
+**Error recovery:** If any step fails mid-workflow, run `git reset HEAD` to unstage
+and `rm -rf "$AGENTIC_TMP"` to clean up, then retry.
+
+**Binary files:** The hash-object technique requires generating file content.
+For binary files, use `git add <file>` (Option A) only.
+
+### Option D: Commit Plan Script (MOST TOKEN-EFFICIENT)
+
+Instead of executing git commands manually, output a JSON commit plan and let
+the `git-commit-plan` script handle all staging and committing:
+
+```bash
+# AI outputs the plan (minimal tokens) and script executes it (zero tokens)
+cat > /tmp/plan.json << 'EOF'
+{
+  "commits": [
+    {
+      "message": "fix(Service): add validation (crash prevention)",
+      "files": [{"path": "Service.php", "hunks": [0]}]
+    },
+    {
+      "message": "feat(Service): add sanitize method (XSS protection)",
+      "files": [{"path": "Service.php"}]
+    }
+  ]
+}
+EOF
+git-commit-plan /tmp/plan.json
+```
+
+**File strategies** (auto-detected from fields):
+- No extra fields → `git add` (full file)
+- `"hunks": [0, 2]` → extract specific hunks from `-U0` diff
+- `"intermediate": "/tmp/v1.ext"` → `git hash-object` + `git update-index`
+
+The script is at `scripts/git-commit-plan`. Install it on PATH or invoke with full path.
 
 ## 6. Verify (IMPORTANT)
 
@@ -462,7 +528,7 @@ If hunks can't be separated (too close together, lines interleaved):
 refactor(AuthService): extract validation and add caching (interleaved - dedup + perf)
 ```
 
-**Note**: This is rare. Most "interleaved" cases can actually be split with `git add -p`.
+**Note**: This is rare. Most "interleaved" cases can actually be split using the `hash-object` technique (see [Splitting Hunks](#splitting-hunks)).
 
 ---
 
@@ -472,7 +538,11 @@ refactor(AuthService): extract validation and add caching (interleaved - dedup +
 |---------|---------|
 | `git diff --no-ext-diff` | Standard unified diff (bypasses custom tools) |
 | `git diff --no-ext-diff --staged` | Staged changes in unified format |
-| `git add -p` | Interactive hunk staging |
+| `git diff --no-ext-diff -U0 <file>` | Zero-context diff (maximizes hunk separation) |
+| `git hash-object -w <file>` | Store file as blob, return SHA (for index staging) |
+| `git update-index --cacheinfo 100644,<SHA>,<path>` | Point index at a blob (stage without touching worktree) |
+| `git apply --cached --unidiff-zero <patch>` | Apply zero-context patch to index only |
+| `git add -p` | Interactive hunk staging (human use) |
 | `git apply --cached <patch>` | Apply patch to staging |
 | `git apply --check <patch>` | Dry run |
 | `git reset HEAD` | Unstage all |
@@ -521,25 +591,57 @@ export GIT_EXTERNAL_DIFF=""
 
 ## Splitting Hunks
 
-If `git add -p` can't split a hunk finely enough:
+When a single file has multiple concerns that need separate commits:
 
-1. **Save and reset approach:**
+1. **Intermediate file via hash-object (Option B — RECOMMENDED for AI agents):**
+   ```bash
+   # AI generates the file as it should look after ONLY the first commit's changes
+   AGENTIC_TMP=$(mktemp -d /tmp/agentic-XXXXXX)
+   # Write file with only the first logical change (e.g., bug fix, not the new feature)
+   cat > "$AGENTIC_TMP/intermediate.ext" << 'EOF'
+   ... file content with only first set of changes applied ...
+   EOF
+   BLOB=$(git hash-object -w "$AGENTIC_TMP/intermediate.ext")
+   git update-index --cacheinfo 100644,"$BLOB",file.ext
+   git commit -m "fix(File): first concern (reason)"
+   rm -rf "$AGENTIC_TMP"
+   # Working tree still has ALL changes — remaining changes for next commit:
+   git add file.ext
+   git commit -m "feat(File): second concern (reason)"
+   ```
+   **Why this works:** `hash-object -w` stores the intermediate file as a blob in git's
+   object database. `update-index --cacheinfo` points the index at that blob. The working
+   tree is never touched — it still contains all original changes. After the first commit,
+   `git add` stages the diff between the intermediate state and the full working tree.
+
+2. **Zero-context diff extraction (Option C):**
    ```bash
    AGENTIC_TMP=$(mktemp -d /tmp/agentic-XXXXXX)
-   cp file.txt $AGENTIC_TMP/file-modified.txt
-   git checkout file.txt
-   # Apply changes incrementally using editor
-   rm -rf $AGENTIC_TMP
+   git diff --no-ext-diff -U0 file.ext > "$AGENTIC_TMP/full.patch"
+   # -U0 maximizes hunk separation (no context overlap)
+   # Extract desired @@ blocks into a partial patch
+   # MUST keep diff header (first 4 lines: diff --git, index, ---, +++)
+   git apply --cached --unidiff-zero "$AGENTIC_TMP/partial.patch"
+   git commit -m "fix(File): first concern (reason)"
+   # Regenerate diff (index hash changed after commit)
+   git diff --no-ext-diff -U0 file.ext > "$AGENTIC_TMP/remaining.patch"
+   git apply --cached --unidiff-zero "$AGENTIC_TMP/remaining.patch"
+   git commit -m "feat(File): second concern (reason)"
+   rm -rf "$AGENTIC_TMP"
    ```
+   **Note:** `--unidiff-zero` is MANDATORY when applying `-U0` patches. Always regenerate
+   the diff after each apply because the index hash changes.
 
-2. **Patch file approach:**
-   ```bash
-   AGENTIC_TMP=$(mktemp -d /tmp/agentic-XXXXXX)
-   git diff --no-ext-diff file.txt > $AGENTIC_TMP/full.patch
-   # Edit patch to include only desired hunks
-   git apply --cached $AGENTIC_TMP/partial.patch
-   rm -rf $AGENTIC_TMP
-   ```
+### Technique Comparison
+
+| Technique | Working Tree Safe | Semantic Grouping | AI-Natural |
+|-----------|:-:|:-:|:-:|
+| hash-object + update-index | ✅ | ✅ | ✅ |
+| -U0 diff + apply --cached | ✅ | ❌ | ❌ |
+| git add -p (interactive) | ✅ | ❌ | ❌ |
+
+**Semantic Grouping** = ability to combine non-adjacent hunks that share one logical purpose.
+AI agents should prefer `hash-object` because they naturally generate file content, not diffs.
 
 ## Verifying Atomic Commits
 
