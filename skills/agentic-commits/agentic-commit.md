@@ -160,9 +160,42 @@ git diff --no-ext-diff --staged
 
 ### Step 4: Commit Each File
 ```bash
-git add <file>  # or git add -p <file> for partial
+# All changes in file are same purpose:
+git add <file>
 git commit -m "type(Scope): what (why) [→ next]"
+
+# Same file, multiple concerns — use hash-object (RECOMMENDED for AI agents):
+AGENTIC_TMP=$(mktemp -d /tmp/agentic-XXXXXX)
+# Write file with only the first logical change applied
+cat > "$AGENTIC_TMP/intermediate.ext" << 'EOF'
+... file content with only first set of changes ...
+EOF
+BLOB=$(git hash-object -w "$AGENTIC_TMP/intermediate.ext")
+git update-index --cacheinfo 100644,"$BLOB",<file>
+git commit -m "type(Scope): first concern (why)"
+rm -rf "$AGENTIC_TMP"
+# Remaining changes still in working tree:
+git add <file>
+git commit -m "type(Scope): second concern (why)"
 ```
+
+### Alternative: Commit Plan Script (MOST TOKEN-EFFICIENT)
+
+Output a JSON plan and let the script handle everything:
+
+```bash
+cat > /tmp/plan.json << 'EOF'
+{
+  "commits": [
+    {"message": "fix(File): first concern (why)", "files": [{"path": "file.ext", "hunks": [0]}]},
+    {"message": "feat(File): second concern (why)", "files": [{"path": "file.ext"}]}
+  ]
+}
+EOF
+git-commit-plan /tmp/plan.json
+```
+
+File fields: no extras = `git add`, `"hunks": [0,2]` = hunk-select, `"intermediate": "/tmp/v1"` = hash-object.
 
 ### Step 5: Verify (CRITICAL)
 ```bash
