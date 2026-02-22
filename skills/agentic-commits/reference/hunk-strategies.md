@@ -39,11 +39,50 @@ Yes → can be separate
 
 ## Same File, Multiple Concerns
 
-Create separate patches, each with:
-- Same file header (`diff --git`, `---`, `+++`)
-- Only relevant `@@` hunks
+### Technique 1: Intermediate File via hash-object (Option B — RECOMMENDED for AI agents)
 
-This enables atomic commits that make **Review** clearer — each commit has one purpose.
+AI generates a file containing ONLY the changes for one commit. Working tree is never touched.
+
+```bash
+AGENTIC_TMP=$(mktemp -d /tmp/agentic-XXXXXX)
+# Write file as it should look after ONLY the first commit's changes
+cat > "$AGENTIC_TMP/intermediate.ext" << 'EOF'
+... file with only first logical change applied ...
+EOF
+BLOB=$(git hash-object -w "$AGENTIC_TMP/intermediate.ext")
+git update-index --cacheinfo 100644,"$BLOB",file.ext
+git commit -m "fix(File): first concern (reason)"
+rm -rf "$AGENTIC_TMP"
+# Working tree still has ALL changes — stage remaining:
+git add file.ext
+git commit -m "feat(File): second concern (reason)"
+```
+
+**Why this is best for AI agents:**
+- AI naturally generates file content (not diffs)
+- Working tree is never modified — no data loss risk
+- Supports semantic grouping (non-adjacent hunks with same purpose)
+
+### Technique 2: Zero-context diff extraction (Option C)
+
+Extract specific `@@` hunks from a `-U0` diff:
+
+```bash
+AGENTIC_TMP=$(mktemp -d /tmp/agentic-XXXXXX)
+git diff --no-ext-diff -U0 file.ext > "$AGENTIC_TMP/full.patch"
+# Keep diff header (4 lines) + desired @@ blocks only
+git apply --cached --unidiff-zero "$AGENTIC_TMP/partial.patch"
+git commit -m "fix(File): first concern (reason)"
+# Regenerate diff (index hash changed after commit)
+git diff --no-ext-diff -U0 file.ext > "$AGENTIC_TMP/remaining.patch"
+git apply --cached --unidiff-zero "$AGENTIC_TMP/remaining.patch"
+git commit -m "feat(File): second concern (reason)"
+rm -rf "$AGENTIC_TMP"
+```
+
+**Note:** `--unidiff-zero` is mandatory with `-U0` patches. Always regenerate diff after each apply because the index hash changes.
+
+Both techniques enable atomic commits that make **Review** clearer — each commit has one purpose.
 
 ## Commit Order
 
