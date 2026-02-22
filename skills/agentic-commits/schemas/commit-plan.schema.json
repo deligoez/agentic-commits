@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Agentic Commit Plan",
+  "description": "Structured commit plan for git-commit-plan script execution",
+  "type": "object",
+  "properties": {
+    "version": {
+      "const": 1,
+      "description": "Schema version (optional, for forward compatibility)"
+    },
+    "commits": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Ordered list of commits to execute",
+      "items": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Commit message in agentic format: type(Scope): what (why)"
+          },
+          "files": {
+            "type": "array",
+            "minItems": 1,
+            "description": "Files to stage for this commit",
+            "items": {
+              "type": "object",
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "File path relative to repository root"
+                },
+                "hunks": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "description": "Hunk indices to extract from -U0 diff (hunk-select strategy)"
+                },
+                "intermediate": {
+                  "type": "string",
+                  "description": "Path to intermediate file for hash-object strategy"
+                }
+              },
+              "required": ["path"],
+              "additionalProperties": false,
+              "oneOf": [
+                {
+                  "properties": {
+                    "path": true
+                  },
+                  "not": {
+                    "anyOf": [
+                      { "required": ["hunks"] },
+                      { "required": ["intermediate"] }
+                    ]
+                  }
+                },
+                {
+                  "required": ["hunks"],
+                  "not": { "required": ["intermediate"] }
+                },
+                {
+                  "required": ["intermediate"],
+                  "not": { "required": ["hunks"] }
+                }
+              ]
+            }
+          }
+        },
+        "required": ["message", "files"],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": ["commits"],
+  "additionalProperties": false
+}
