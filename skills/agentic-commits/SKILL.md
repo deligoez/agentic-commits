@@ -25,6 +25,16 @@ Commit format that AI agents can read, understand, and act on.
 
 Execute autonomously. Never push.
 
+## Script Path
+
+The `git-commit-plan` script is at `scripts/git-commit-plan` relative to this skill's base directory.
+Use the base directory provided at skill activation to construct the full path:
+
+```bash
+# The base directory is shown as "Base directory for this skill: <path>" when the skill loads.
+<base_directory>/scripts/git-commit-plan /tmp/plan.json
+```
+
 ---
 
 # The Format
@@ -175,11 +185,12 @@ How agents determine work status from last commit:
 
 ```bash
 git status --short
-git diff --no-ext-diff
-git diff --no-ext-diff --staged
+git diff --no-ext-diff --stat          # summary: which files, how many lines
+git diff --no-ext-diff                  # full unified diff
+git diff --no-ext-diff --staged        # already-staged changes
 ```
 
-**Note**: `--no-ext-diff` ensures standard unified diff format, bypassing custom diff tools (diff-so-fancy, delta, etc.).
+**Note**: `--no-ext-diff` ensures standard unified diff format, bypassing custom diff tools (diff-so-fancy, delta, etc.). Use ONLY the flags shown above — do not invent flags like `--short-stat`.
 
 No changes → stop.
 
@@ -285,8 +296,6 @@ git-commit-plan "$AGENTIC_TMP"
 
 **Plan splitting** (~500 line limit per plan):
 Split into numbered files (`001.json`, `002.json`, ...) in a temp directory.
-
-The script is at `scripts/git-commit-plan`. Install it on PATH or invoke with full path.
 
 **Error recovery:** If a plan fails mid-execution, run `git reset HEAD` to unstage, then fix and re-run.
 
