@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "agentic-commits",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "Atomic commits with agent-optimized format for Resume, Review, Handoff, and Code Review",
   "owner": {
     "name": "deligoez"
@@ -10,7 +10,7 @@
     {
       "name": "agentic-commits",
       "description": "Commit format that AI agents can act on. Splits changes into atomic hunks with structured format enabling Resume, Review, and Handoff.",
-      "version": "1.4.0",
+      "version": "1.4.1",
       "source": {
         "source": "github",
         "repo": "deligoez/agentic-commits"
