@@ -144,6 +144,8 @@ git diff --no-ext-diff --staged        # already-staged changes
 
 **Note**: `--no-ext-diff` ensures standard unified diff format. Use ONLY the flags shown above.
 
+**Skip** if you already know the changes from this session.
+
 ### Step 2: Group by File (MANDATORY)
 **FIRST, separate changes by file.** Each file = separate commit.
 
@@ -189,15 +191,8 @@ git-commit-plan 001.json 002.json 003.json
 git-commit-plan /tmp/agentic-XXXXXX/
 ```
 
-### Step 5: Verify (CRITICAL)
-```bash
-git log --oneline -5
-git status --short
-
-# Verify only ONE file per commit
-git show --stat HEAD | grep '|' | wc -l
-# Expected: 1 — If > 1, you violated the rule!
-```
+### Step 5: Verify
+The script reports results. Run `git status --short` only to check for remaining changes.
 
 ## Key Rules
 
