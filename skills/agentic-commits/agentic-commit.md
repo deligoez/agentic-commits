@@ -137,11 +137,12 @@ $ git log --oneline -5
 ### Step 1: Gather
 ```bash
 git status --short
-git diff --no-ext-diff
-git diff --no-ext-diff --staged
+git diff --no-ext-diff --stat          # summary: which files, how many lines
+git diff --no-ext-diff                  # full unified diff
+git diff --no-ext-diff --staged        # already-staged changes
 ```
 
-**Note**: `--no-ext-diff` ensures standard unified diff format.
+**Note**: `--no-ext-diff` ensures standard unified diff format. Use ONLY the flags shown above.
 
 ### Step 2: Group by File (MANDATORY)
 **FIRST, separate changes by file.** Each file = separate commit.
