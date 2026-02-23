@@ -194,6 +194,8 @@ git diff --no-ext-diff --staged        # already-staged changes
 
 No changes → stop.
 
+**Skip gather** if you made the changes in this session and already know what changed — go directly to step 2.
+
 ## 2. Group Changes by File (MANDATORY)
 
 **FIRST, separate changes by file.** Each file = separate commit (with rare exceptions).
@@ -313,19 +315,12 @@ The script auto-selects from three git staging techniques based on JSON fields:
 
 **Binary files:** Only the full strategy works for binary files (`"path"` only, no `hunks` or `intermediate`).
 
-## 6. Verify (IMPORTANT)
+## 6. Verify
 
-```bash
-git log --oneline -<N>
-git status --short
+The script reports committed/failed counts and warns about multi-file commits.
+Only run `git status --short` to check for remaining unstaged changes.
 
-# CRITICAL: Verify only ONE file was changed per commit
-git show --stat HEAD | grep '|' | wc -l
-# Expected: 1 (one file per commit)
-# If > 1: git reset --soft HEAD~1 and split into separate commits
-```
-
-Remaining changes → go back to step 2 and continue analysis.
+Remaining changes → go back to step 2.
 
 ---
 
