@@ -143,7 +143,7 @@ validate_plan() {
     local warnings
     warnings=$(echo "$plan_json" | jq -r '
         [.commits | to_entries[] | .key as $i | .value |
-            if (.message | test("^(feat|fix|wip|refactor|test|docs|chore)\\(") | not)
+            if (.message | test("(feat|fix|wip|refactor|test|docs|chore)\\(") | not)
             then "commit[\($i)]: message does not match format type(Scope): what (why)"
             else empty end
         ] | .[]
