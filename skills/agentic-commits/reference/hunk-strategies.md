@@ -44,7 +44,7 @@ Use the `git-commit-plan` script to handle splitting automatically. The script s
 | Strategy | JSON Fields | How It Works |
 |----------|-------------|--------------|
 | **full** | `{"path": "file"}` | `git add` — all changes in file |
-| **hunk-select** | `{"path": "file", "hunks": [0,2]}` | Extracts specific `@@` blocks from `-U0` diff |
+| **hunk-select** | `{"path": "file", "hunks": [0,2]}` | Extracts specific `@@` blocks from `-U0` diff, auto-adjusts line numbers |
 | **hash-object** | `{"path": "file", "intermediate": "/tmp/v1"}` | `git hash-object` + `git update-index` — never touches working tree |
 
 ```bash
@@ -58,6 +58,10 @@ cat > /tmp/plan.json << 'EOF'
 EOF
 git-commit-plan /tmp/plan.json
 ```
+
+**hunk-select** handles two tricky scenarios automatically:
+- **Re-indexing:** When the same file appears in multiple hunk-select commits, hunk indices shift after each commit. The script re-indexes automatically.
+- **Non-contiguous hunks:** When selecting hunks like `[0, 2]` (skipping 1), the `@@` line numbers in the patch are adjusted to account for the skipped hunk's line changes. This works for additions, deletions, and mixed changes.
 
 **hash-object** is best for AI agents: generates file content (not diffs), never touches working tree, supports semantic grouping across non-adjacent hunks.
 
