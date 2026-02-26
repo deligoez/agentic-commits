@@ -308,8 +308,12 @@ The script auto-selects from three git staging techniques based on JSON fields:
 | Strategy | JSON Fields | Git Operations |
 |----------|-------------|----------------|
 | **full** | `{"path": "file"}` | `git add <file>` |
-| **hunk-select** | `{"path": "file", "hunks": [0,2]}` | `-U0` diff → extract `@@` blocks → `git apply --cached --unidiff-zero` |
+| **hunk-select** | `{"path": "file", "hunks": [0,2]}` | `-U0` diff → extract `@@` blocks → adjust line numbers → `git apply --cached --unidiff-zero` |
 | **hash-object** | `{"path": "file", "intermediate": "/tmp/v1"}` | `git hash-object -w` → `git update-index --cacheinfo` |
+
+**hunk-select** handles complex splits automatically:
+- **Re-indexing:** When the same file appears in multiple hunk-select commits, hunk indices shift after each commit. The script re-indexes automatically.
+- **Non-contiguous hunks:** When selecting `[0, 2]` (skipping 1), `@@` line numbers are adjusted for the skipped hunk's line changes. Works with additions, deletions, and mixed changes.
 
 **hash-object** is best for AI agents: generates file content (not diffs), never touches working tree, supports semantic grouping across non-adjacent hunks.
 
