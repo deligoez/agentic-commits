@@ -160,7 +160,42 @@ validate_plan() {
 
 # --- Hunk Extraction ---
 
+# Compute net line change from a @@ header line
+# @@ -old_start[,old_count] +new_start[,new_count] @@
+# Returns: new_count - old_count (positive = lines added, negative = lines removed)
+compute_hunk_net_change() {
+    local header="$1"
+    local old_count=1
+    local new_count=1
+
+    if [[ "$header" =~ ^@@\ -([0-9]+)(,([0-9]+))?\ \+([0-9]+)(,([0-9]+))?\ @@ ]]; then
+        old_count="${BASH_REMATCH[3]:-1}"
+        new_count="${BASH_REMATCH[6]:-1}"
+    fi
+
+    echo $((new_count - old_count))
+}
+
+# Adjust +new_start in a @@ header by subtracting a delta
+# Used when skipped hunks shift line numbers in the new file
+adjust_hunk_header() {
+    local header="$1"
+    local delta="$2"
+
+    if [[ "$header" =~ ^(@@\ -[0-9]+(,[0-9]+)?\ \+)([0-9]+)(.*) ]]; then
+        local prefix="${BASH_REMATCH[1]}"
+        local new_start="${BASH_REMATCH[3]}"
+        local suffix="${BASH_REMATCH[4]}"
+        local adjusted=$((new_start - delta))
+        echo "${prefix}${adjusted}${suffix}"
+    else
+        echo "$header"
+    fi
+}
+
 # Extract specific hunks from a -U0 diff and create a partial patch
+# When non-contiguous hunks are selected, adjusts @@ line numbers to account
+# for skipped hunks whose line changes are not present in the partial patch.
 # Args: $1 = file path, $2 = comma-separated hunk indices (e.g., "0,2")
 # Output: patch content on stdout
 extract_hunks() {
@@ -178,10 +213,12 @@ extract_hunks() {
     local header
     header=$(echo "$diff_output" | head -4)
 
-    # Extract all @@ blocks with their content
-    # Each hunk starts with @@ and continues until the next @@ or end
+    # Extract selected @@ blocks with their content.
+    # Track cumulative line-count delta from skipped hunks so that
+    # +new_start in later selected hunks can be adjusted.
     local current_hunk=-1
     local in_selected=0
+    local skipped_delta=0
     local result="$header"
 
     while IFS= read -r line; do
@@ -196,6 +233,18 @@ extract_hunks() {
                     break
                 fi
             done
+
+            if [ "$in_selected" -eq 1 ]; then
+                # Adjust +new_start if preceding hunks were skipped
+                if [ "$skipped_delta" -ne 0 ]; then
+                    line=$(adjust_hunk_header "$line" "$skipped_delta")
+                fi
+            else
+                # Skipped hunk: accumulate its net line change
+                local net_change
+                net_change=$(compute_hunk_net_change "$line")
+                skipped_delta=$((skipped_delta + net_change))
+            fi
         fi
         if [ "$in_selected" -eq 1 ]; then
             result="$result"$'\n'"$line"
@@ -279,6 +328,40 @@ stage_file() {
 
 # --- Process Plan ---
 
+# Re-index hunk indices for a file that has had previous hunks committed.
+# After committing hunks [0,2,4], the remaining hunks shift down.
+# Formula: new_index = original_index - count(committed_hunks < original_index)
+# Args: $1 = file JSON with hunks array, $2 = space-separated sorted committed hunk indices
+# Output: updated file JSON with re-indexed hunks on stdout
+reindex_hunks() {
+    local file_json="$1"
+    local committed_str="$2"
+
+    # Convert committed hunks to array
+    local -a committed=()
+    read -ra committed <<< "$committed_str"
+
+    # Get original hunk indices
+    local original_hunks
+    original_hunks=$(echo "$file_json" | jq -r '.hunks | join(" ")')
+
+    local -a new_hunks=()
+    for orig_idx in $original_hunks; do
+        local offset=0
+        for c in "${committed[@]}"; do
+            if [ "$c" -lt "$orig_idx" ]; then
+                offset=$((offset + 1))
+            fi
+        done
+        new_hunks+=($((orig_idx - offset)))
+    done
+
+    # Rebuild file JSON with new hunk indices
+    local hunks_json
+    hunks_json=$(printf '%s\n' "${new_hunks[@]}" | jq -s '.')
+    echo "$file_json" | jq --argjson h "$hunks_json" '.hunks = $h'
+}
+
 # Execute all commits in a validated plan
 # Args: $1 = JSON string (already validated)
 # Updates global _committed, _failed, _total_commits counters
@@ -288,6 +371,12 @@ process_plan() {
     local commit_count
     commit_count=$(echo "$plan_json" | jq '.commits | length')
     _total_commits=$((_total_commits + commit_count))
+
+    # Track committed hunk indices per file path for re-indexing.
+    # Uses parallel arrays since bash 3 lacks associative arrays.
+    # _chf_paths[i] = file path, _chf_hunks[i] = space-separated sorted hunk indices
+    local -a _chf_paths=()
+    local -a _chf_hunks=()
 
     for i in $(seq 0 $((commit_count - 1))); do
         local commit_json
@@ -308,6 +397,24 @@ process_plan() {
             file_json=$(echo "$commit_json" | jq ".files[$j]")
             local file_path
             file_path=$(echo "$file_json" | jq -r '.path')
+
+            # Re-index hunks if this file had previous hunk-select commits
+            if echo "$file_json" | jq -e '.hunks' >/dev/null 2>&1; then
+                local prev_hunks=""
+                local chf_len=${#_chf_paths[@]:-0}
+                if [ "$chf_len" -gt 0 ]; then
+                    for k in $(seq 0 $((chf_len - 1))); do
+                        if [ "${_chf_paths[$k]}" = "$file_path" ]; then
+                            prev_hunks="${_chf_hunks[$k]}"
+                            break
+                        fi
+                    done
+                fi
+
+                if [ -n "$prev_hunks" ]; then
+                    file_json=$(reindex_hunks "$file_json" "$prev_hunks")
+                fi
+            fi
 
             if ! stage_file "$file_json" 2>/dev/null; then
                 warn "  Failed to stage: $file_path"
@@ -339,6 +446,35 @@ process_plan() {
             fi
             success "  Committed ($files_changed file)"
             _committed=$((_committed + 1))
+
+            # Record committed hunks for re-indexing future commits
+            for j in $(seq 0 $((file_count - 1))); do
+                local rec_json
+                rec_json=$(echo "$commit_json" | jq ".files[$j]")
+                if echo "$rec_json" | jq -e '.hunks' >/dev/null 2>&1; then
+                    local rec_path
+                    rec_path=$(echo "$rec_json" | jq -r '.path')
+                    local rec_hunks
+                    rec_hunks=$(echo "$rec_json" | jq -r '.hunks | sort | join(" ")')
+
+                    # Find existing entry or create new
+                    local found=0
+                    local chf_rec_len=${#_chf_paths[@]:-0}
+                    if [ "$chf_rec_len" -gt 0 ]; then
+                        for k in $(seq 0 $((chf_rec_len - 1))); do
+                            if [ "${_chf_paths[$k]}" = "$rec_path" ]; then
+                                _chf_hunks[$k]="${_chf_hunks[$k]} $rec_hunks"
+                                found=1
+                                break
+                            fi
+                        done
+                    fi
+                    if [ "$found" -eq 0 ]; then
+                        _chf_paths+=("$rec_path")
+                        _chf_hunks+=("$rec_hunks")
+                    fi
+                fi
+            done
         else
             warn "  Commit failed"
             git reset HEAD -- . >/dev/null 2>&1 || true
