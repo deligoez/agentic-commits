@@ -91,6 +91,103 @@ class Service
 EOF
 }
 
+# Add three independent changes to Service.php (validation fix + logging + sanitize feature)
+add_three_changes_to_service() {
+    cat > "${REPO}/Service.php" << 'EOF'
+<?php
+
+class Service
+{
+    public function validate(string $input): bool
+    {
+        if (empty($input)) {
+            throw new \InvalidArgumentException('Input cannot be empty');
+        }
+
+        return strlen($input) > 0;
+    }
+
+    public function process(string $input): string
+    {
+        error_log("Processing: $input");
+
+        return strtoupper($input);
+    }
+
+    public function sanitize(string $input): string
+    {
+        return htmlspecialchars($input, ENT_QUOTES, 'UTF-8');
+    }
+}
+EOF
+}
+
+# Add changes with a deletion hunk (deletion + addition + addition)
+# Hunk 0: delete return line in validate (net -1)
+# Hunk 1: add error_log in process (net +2)
+# Hunk 2: add sanitize method (net +5)
+add_changes_with_deletion() {
+    cat > "${REPO}/Service.php" << 'EOF'
+<?php
+
+class Service
+{
+    public function validate(string $input): bool
+    {
+    }
+
+    public function process(string $input): string
+    {
+        error_log("Processing: $input");
+
+        return strtoupper($input);
+    }
+
+    public function sanitize(string $input): string
+    {
+        return htmlspecialchars($input, ENT_QUOTES, 'UTF-8');
+    }
+}
+EOF
+}
+
+# Add four independent changes to Service.php
+# Hunk 0: validation check in validate()
+# Hunk 1: error_log in process()
+# Hunk 2: cache property at class top
+# Hunk 3: sanitize method at end
+add_four_changes_to_service() {
+    cat > "${REPO}/Service.php" << 'EOF'
+<?php
+
+class Service
+{
+    private array $cache = [];
+
+    public function validate(string $input): bool
+    {
+        if (empty($input)) {
+            throw new \InvalidArgumentException('Input cannot be empty');
+        }
+
+        return strlen($input) > 0;
+    }
+
+    public function process(string $input): string
+    {
+        error_log("Processing: $input");
+
+        return strtoupper($input);
+    }
+
+    public function sanitize(string $input): string
+    {
+        return htmlspecialchars($input, ENT_QUOTES, 'UTF-8');
+    }
+}
+EOF
+}
+
 # --- Assertion Helpers ---
 
 # Assert the number of commits since the initial commit
