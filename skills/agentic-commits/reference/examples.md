@@ -118,6 +118,32 @@ Agent extracts:
 
 ---
 
+## Test Granularity
+
+### ✅ Good: Same purpose → one commit
+```
+# All tests cover the same behavior (hunk re-indexing edge cases)
+test(git-commit-plan-hunks): add re-indexing and non-contiguous split tests (hunk-shift coverage)
+```
+
+### ✅ Good: Different purposes → separate commits
+```
+# Same test file, but tests cover different behaviors
+test(SessionManager.test): add token expiry tests (expiry coverage)
+test(SessionManager.test): add refresh error tests (error path coverage)
+```
+
+### ❌ Bad: One commit per test when all serve the same purpose
+```
+# Unnecessary noise — all 7 tests exist for hunk-shift coverage
+test(git-commit-plan-hunks): add re-indexing test 1 (hunk-shift coverage)
+test(git-commit-plan-hunks): add re-indexing test 2 (hunk-shift coverage)
+```
+
+**Rule**: Group tests by purpose, not by count. Ask: "Do these tests exist for the same reason?" If yes → one commit.
+
+---
+
 ## Atomic vs Non-Atomic
 
 ### ❌ Bad: Mixed concerns
