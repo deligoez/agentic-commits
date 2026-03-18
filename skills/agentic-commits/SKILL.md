@@ -142,6 +142,33 @@ fix(Config): handle null config gracefully (crash prevention)
 feat(Config): add retry option (resilience)
 ```
 
+### Test Granularity Rule
+
+**Same-purpose tests = one commit. Different-purpose tests = separate commits.**
+
+Tests in the same file follow the Purpose rule: group by what they cover, not by file.
+
+### ✅ Good: Same purpose → one commit
+```bash
+# 7 tests all covering hunk re-indexing edge cases
+test(git-commit-plan-hunks): add re-indexing and non-contiguous split tests (hunk-shift coverage)
+```
+
+### ✅ Good: Different purposes → separate commits
+```bash
+# Tests covering different behaviors in the same file
+test(SessionManager.test): add token expiry tests (expiry coverage)
+test(SessionManager.test): add refresh error tests (error path coverage)
+```
+
+### ❌ Bad: Splitting same-purpose tests
+```bash
+# Unnecessary — all 7 tests serve the same purpose
+test(git-commit-plan-hunks): add re-indexing test 1 (hunk-shift coverage)
+test(git-commit-plan-hunks): add re-indexing test 2 (hunk-shift coverage)
+# ... 5 more identical-purpose commits
+```
+
 **Rule**: One commit = One purpose. Type is secondary.
 
 ---
@@ -429,6 +456,8 @@ feat(SessionManager): add refresh capability (seamless re-auth)
 | Two unrelated fixes | **Separate** |
 | Config + code using it | Same |
 | Same fix type in different files | **Separate** |
+| Same-purpose tests in one file | Same |
+| Different-purpose tests in one file | **Separate** |
 
 ## One File Per Commit (STRICT)
 
