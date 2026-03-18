@@ -36,6 +36,8 @@ Yes → can be separate
 | Rename + all usages | Same |
 | Two unrelated fixes | Separate |
 | Config + code using it | Same |
+| Same-purpose tests in one file | Same |
+| Different-purpose tests in one file | Separate |
 
 ## Same File, Multiple Concerns
 
