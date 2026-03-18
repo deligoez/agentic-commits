@@ -82,7 +82,8 @@ Split changes into atomic, single-purpose commits:
 1. **One file per commit** — Each file is a separate commit (see above)
 2. **One logical change per commit** — Don't mix unrelated changes
 3. **Hunk-level splitting** — Same file can have multiple commits if changes are independent
-4. **Commit order** — fixes → refactors → features
+4. **Test granularity** — Same-purpose tests = one commit; different-purpose tests = separate commits
+5. **Commit order** — fixes → refactors → features
 
 ### Same File, Multiple Concerns
 
